@@ -20,7 +20,7 @@ button { font: inherit; cursor: pointer; }
 /* top bar */
 .top { background: rgba(15,13,46,.82); -webkit-backdrop-filter: saturate(180%) blur(20px); backdrop-filter: saturate(180%) blur(20px); color: #fff; position: sticky; top: 0; z-index: 30; border-bottom: 1px solid rgba(255,255,255,.06); }
 .top .wrap { display: flex; align-items: center; gap: 18px; height: 60px; }
-.logo { display: flex; align-items: center; gap: 10px; font-family: "Space Grotesk"; font-weight: 700; font-size: 19px; color: #fff; }
+.logo { display: flex; align-items: center; gap: 10px; white-space: nowrap; flex: none; font-family: "Space Grotesk"; font-weight: 700; font-size: 19px; color: #fff; }
 .logo svg { width: 30px; height: 30px; }
 .tabs { display: flex; gap: 4px; margin-left: 14px; overflow-x: auto; }
 .tab { background: none; border: 0; color: #b9b6d8; padding: 8px 13px; border-radius: 10px; white-space: nowrap; font-weight: 500; }
