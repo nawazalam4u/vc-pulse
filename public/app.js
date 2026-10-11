@@ -318,7 +318,7 @@ async function runNow() {
     $("#radar").classList.add("done"); $("#mClose").hidden = false; btn.disabled = false; return;
   }
   const ids = start.ids, batches = [];
-  for (let i = 0; i < ids.length; i += 6) batches.push(ids.slice(i, i + 6));
+  for (let i = 0; i < ids.length; i += 10) batches.push(ids.slice(i, i + 10));
   let done = 0, hot = 0, kept = 0, scanned = 0; const touched = [];
   $("#mSub").textContent = `Run #${start.run} · ${ids.length} investors · 5 live sources each · Gemini Flash judges every item`;
   const worker = async () => {
@@ -343,7 +343,7 @@ async function runNow() {
       $("#mTitle").textContent = `Scanning… ${done}/${ids.length}`;
     }
   };
-  await Promise.all([worker(), worker(), worker()]);
+  await Promise.all([worker(), worker(), worker()]);  // 5 batches of 10, 3 at a time
   try {
     const f = await api("/api/run", { method: "POST", body: JSON.stringify({ action: "finish", run: start.run }) });
     const safe = f.run.notes_hash_before === f.run.notes_hash_after;

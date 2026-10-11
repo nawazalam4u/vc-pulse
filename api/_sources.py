@@ -132,7 +132,9 @@ def podcasts(name):
     return out[:5]
 
 
-SEARCH_STATE = {"available": None}  # None = untested, False = not on this API plan
+import os
+# Google Search grounding is not part of the free Gemini plan. Set GEMINI_SEARCH=1 on Vercel once billing is on.
+SEARCH_STATE = {"available": None if os.environ.get("GEMINI_SEARCH") == "1" else False}
 
 
 def web_search(vc, gemini):

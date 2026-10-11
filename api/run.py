@@ -11,6 +11,8 @@ from http.server import BaseHTTPRequestHandler
 import _http
 import _db
 import _engine
+import _gemini
+import json
 
 
 class handler(BaseHTTPRequestHandler):
@@ -34,8 +36,11 @@ class handler(BaseHTTPRequestHandler):
             if not run or run[0]["status"] != "running":
                 return _http.send(self, {"error": "run is not active"}, 409)
             if act == "batch":
-                ids = [int(x) for x in (b.get("ids") or [])][:6]
-                return _http.send(self, {"report": _engine.process(rid, ids, workers=6, judge_size=6)})
+                ids = [int(x) for x in (b.get("ids") or [])][:10]
+                rep = _engine.process(rid, ids, workers=10, judge_size=10)
+                _db.q("update runs set sources = coalesce(sources, '{}'::jsonb) || $2::jsonb where id = $1",
+                      [rid, json.dumps({"models_used_batch_%d" % ids[0]: _gemini.USED})]) if ids else None
+                return _http.send(self, {"report": rep})
             if act == "finish":
                 return _http.send(self, {"run": _engine.finish_run(rid)})
         except _db.DBError as e:

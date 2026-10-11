@@ -10,6 +10,8 @@ MODELS = [m.strip() for m in os.environ.get(
     "GEMINI_MODEL", "gemini-3.5-flash,gemini-3.5-flash-lite,gemini-3.1-flash-lite").split(",") if m.strip()]
 URL = "https://generativelanguage.googleapis.com/v1beta/models/%s:generateContent"
 LAST = {"model": None}
+EXHAUSTED = set()   # models that hit their free daily limit: skip them for the rest of this process
+USED = {}           # model -> successful calls (stored in the run log so you can see which model judged)
 # Gemini 3.5 Flash "thinks" before answering; low keeps it careful but ~3x faster (25s vs 80s for 5 investors)
 THINKING = {"gemini-3.5-flash": "low"}
 
@@ -46,21 +48,28 @@ def generate(prompt, schema=None, system=None, temperature=0.2, timeout=60, tool
         body["tools"] = tools
     last = None
     for model in models or MODELS:
+        if model in EXHAUSTED:
+            continue
         for attempt in range(2):
             try:
                 resp = _call(model, body, timeout)
                 LAST["model"] = model
+                USED[model] = USED.get(model, 0) + 1
                 return _text(resp), resp
             except urllib.error.HTTPError as e:
-                last = "%s %s: %s" % (model, e.code, e.read().decode()[:160])
+                detail = e.read().decode()
+                last = "%s %s: %s" % (model, e.code, detail[:160])
+                if e.code == 429 and "PerDay" in detail:
+                    EXHAUSTED.add(model)  # free daily quota used up: asking again today is pointless
+                    break
                 if e.code in (429, 500, 503) and attempt == 0 and not tools:
-                    time.sleep(4)
+                    time.sleep(5)
                     continue
                 break  # 400/403/404 or second failure: next model
             except Exception as e:  # timeout, network
                 last = "%s: %s" % (model, e)
                 break
-    raise RuntimeError(last or "no Gemini model available")
+    raise RuntimeError(last or "all Gemini Flash models are at their free daily limit")
 
 
 def generate_json(prompt, schema, **kw):

@@ -215,7 +215,7 @@ def _log(run_id, entry):
     _db.q("update runs set log = log || $2::jsonb where id = $1", [run_id, json.dumps([entry])])
 
 
-def process(run_id, vc_ids, workers=6, judge_size=5):
+def process(run_id, vc_ids, workers=8, judge_size=10):
     """Gather, judge, score and write a set of VCs. Returns a short report per VC."""
     if not vc_ids:
         return []
@@ -227,7 +227,7 @@ def process(run_id, vc_ids, workers=6, judge_size=5):
 
     batches = [gathered[i:i + judge_size] for i in range(0, len(gathered), judge_size)]
     verdicts, errors = {}, 0
-    with ThreadPoolExecutor(max_workers=3) as ex:
+    with ThreadPoolExecutor(max_workers=2) as ex:
         futs = [ex.submit(judge, [(v, items) for v, items, _ in b]) for b in batches]
         for f in futs:
             try:
@@ -314,7 +314,7 @@ def finish_run(run_id):
           "quiet_count = (select count(*) from vcs where recommended_action like 'PARK%'), "
           "sources = coalesce(sources, '{}'::jsonb) || $3::jsonb where id = $1",
           [run_id, fp["h"], json.dumps({"gemini_search": _sources.SEARCH_STATE["available"],
-                                        "model": _gemini.LAST["model"]})])
+                                        "model": _gemini.LAST["model"], "models_used": _gemini.USED})])
     return _db.q("select * from runs where id = $1", [run_id])[0]
 
 
@@ -323,6 +323,6 @@ def run_all(trigger="cron"):
     if not fresh:
         return {"run_id": rid, "status": "already running"}
     ids = [r["id"] for r in _db.q("select id from vcs order by id")]
-    report = process(rid, ids, workers=8)
+    report = process(rid, ids, workers=10, judge_size=10)
     run = finish_run(rid)
     return {"run_id": rid, "run": run, "report": report}

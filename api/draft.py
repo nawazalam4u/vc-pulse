@@ -36,7 +36,9 @@ class handler(BaseHTTPRequestHandler):
                      "This is a polite follow-up: Vikram already pitched them and is waiting for a reply." if waiting
                      else "This is a first-touch email.", ev, vc["status"], vc["contact_history"] or "-", vc["notes"] or "-"))
         try:
-            text, _ = _gemini.generate(prompt, temperature=0.6, timeout=50)
+            # drafts use the Lite models first, saving the main model's small free daily quota for judging
+            text, _ = _gemini.generate(prompt, temperature=0.6, timeout=50,
+                                       models=["gemini-3.5-flash-lite", "gemini-3.1-flash-lite", "gemini-3.5-flash"])
         except Exception as e:
             return _http.send(self, {"error": "Gemini is busy, try again in a minute (%s)" % str(e)[:80]}, 503)
         _http.send(self, {"draft": text.strip(), "model": _gemini.LAST["model"], "based_on": sig})
