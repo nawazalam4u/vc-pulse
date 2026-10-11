@@ -37,6 +37,8 @@ create table if not exists signals (
   summary    text,
   points     numeric,
   run_id     int,
+  event      text,                     -- same id for every article about the same real-world event
+  dup        boolean default false,    -- true = another article already counted this event
   first_seen timestamptz not null default now(),
   unique (vc_id, url)
 );
@@ -72,3 +74,7 @@ create table if not exists vc_changes (
   new_action text,
   primary key (run_id, vc_id)
 );
+
+-- added after first deploy (safe to re-run)
+alter table signals add column if not exists event text;
+alter table signals add column if not exists dup boolean default false;

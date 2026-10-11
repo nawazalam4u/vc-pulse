@@ -211,7 +211,8 @@ async function openVc(id) {
   dr.innerHTML = `<div class="dh"><h2>Loading…</h2><button class="x" onclick="closeVc()">×</button></div><div class="db"><div class="skel"></div><div class="skel"></div></div>`;
   let d;
   try { d = await api("/api/vc?id=" + id); } catch (e) { dr.innerHTML = `<div class="db">${esc(e.message)}</div>`; return; }
-  const v = d.vc, kept = d.signals.filter((s) => s.about_vc && +s.points >= 4), rej = d.signals.filter((s) => !(s.about_vc && +s.points >= 4));
+  const v = d.vc, kept = d.signals.filter((s) => s.about_vc && !s.dup && +s.points >= 4), rej = d.signals.filter((s) => !(s.about_vc && +s.points >= 4));
+  const also = d.signals.filter((s) => s.about_vc && s.dup);
   const fresh = kept.filter((s) => daysSince(s.published) <= 30);
   const max = Math.max(...d.breakdown.map((b) => Math.abs(b[1])), 1);
   const hist = [...d.history].reverse();
@@ -232,6 +233,7 @@ async function openVc(id) {
     <div class="box"><h4>🔎 Evidence (last 30 days): ${fresh.length} signal${fresh.length === 1 ? "" : "s"}</h4>
       ${fresh.length ? fresh.map((s) => `<div class="evi"><div class="d">${fmtDate(s.published)}<br><span class="chip ${esc(s.kind)}" style="margin-top:4px">${KIND[s.kind] || ""}</span></div><div><a class="t" href="${esc(s.url)}" target="_blank" rel="noopener">${esc(s.title)} ↗</a><div class="s">${esc(s.summary || "")}</div><div class="s">${esc(s.source)} · via ${ORIGIN[s.origin] || s.origin} · fit ${s.relevance}/3 · ${(+s.points).toFixed(1)} pts</div></div></div>`).join("")
         : `<p style="margin:0;color:var(--ink2)">No qualifying public activity in the last 30 days. That's useful too: don't spend energy here this week.</p>`}
+      ${also.length ? `<details style="margin-top:8px"><summary>Same events, other outlets: ${also.length} (counted once)</summary>${also.slice(0, 20).map((s) => `<div class="evi rej"><div class="d">${fmtDate(s.published)}</div><div><a href="${esc(s.url)}" target="_blank" rel="noopener">${esc(s.title)}</a><div class="s">${esc(s.source)}</div></div></div>`).join("")}</details>` : ""}
       ${rej.length ? `<details style="margin-top:8px"><summary>Filtered out by Gemini: ${rej.length} item${rej.length === 1 ? "" : "s"} (not about them, or not relevant)</summary>${rej.slice(0, 25).map((s) => `<div class="evi rej"><div class="d">${fmtDate(s.published)}</div><div><a href="${esc(s.url)}" target="_blank" rel="noopener">${esc(s.title)}</a><div class="s">${esc(s.source)} · via ${ORIGIN[s.origin] || s.origin}</div></div></div>`).join("")}</details>` : ""}
     </div>
     <div class="box"><h4>🔒 Your columns (never touched by the engine)</h4><div class="kv">
@@ -305,12 +307,14 @@ async function runNow() {
   const feed = $("#mFeed"); feed.innerHTML = ""; $("#mBar").style.width = "0";
   $("#radar").classList.remove("done"); $("#mClose").hidden = true;
   $("#mTitle").textContent = "Scanning your pipeline…";
+  $("#mSub").textContent = "Fetching news, deals, blogs and podcasts for each investor; Gemini Flash judges every item.";
   $("#runModal").classList.add("on");
   const line = (html) => { feed.insertAdjacentHTML("afterbegin", `<div class="ln">${html}</div>`); };
   let start;
   try { start = await api("/api/run", { method: "POST", body: JSON.stringify({ action: "start" }) }); }
   catch (e) {
     $("#mTitle").textContent = e.status === 429 ? "Already fresh ✨" : "Couldn't start";
+    $("#mSub").textContent = e.status === 429 ? "Tip: Vikram's magic link can refresh any time." : "";
     line(`<span>${esc(e.message)}</span>`); $("#radar").classList.add("done"); $("#mClose").hidden = false; btn.disabled = false; return;
   }
   if (!start.fresh) {

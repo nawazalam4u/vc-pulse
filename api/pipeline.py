@@ -17,7 +17,7 @@ class handler(BaseHTTPRequestHandler):
             vcs, sig, runs, changes, cnt = _db.tx([
                 ("select * from vcs order by follow_up_score desc nulls last, name", []),
                 ("select id, vc_id, url, title, source, origin, published, kind, relevance, summary, points "
-                 "from signals where about_vc and points >= 4 and published >= current_date - 30 order by points desc", []),
+                 "from signals where about_vc and not coalesce(dup, false) and points >= 4 and published >= current_date - 30 order by points desc", []),
                 ("select id, trigger, started_at, finished_at, status, vcs_total, vcs_done, items_scanned, signals_kept, "
                  "hot_count, quiet_count, errors, notes_hash_before, notes_hash_after, sources from runs order by id desc limit 12", []),
                 ("select vc_id, old_score, new_score, old_action, new_action from vc_changes "

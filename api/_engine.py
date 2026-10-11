@@ -39,8 +39,9 @@ JUDGE_SCHEMA = {
                 "actor": {"type": "STRING", "enum": ["person", "firm", "no"]},
                 "kind": {"type": "STRING", "enum": ["invested", "wrote", "said", "appeared", "mentioned", "other"]},
                 "relevance": {"type": "INTEGER"},
+                "event": {"type": "STRING"},
                 "summary": {"type": "STRING"}},
-                "required": ["i", "actor", "kind", "relevance", "summary"]}},
+                "required": ["i", "actor", "kind", "relevance", "event", "summary"]}},
             "overall": {"type": "STRING"},
             "hook": {"type": "STRING"}},
         "required": ["vc", "items", "overall", "hook"]}}
@@ -50,7 +51,10 @@ For each investor you get a numbered list of public items (headline, source, dat
 Judge every item using ONLY the text given. Never add facts, names, numbers or dates that are not in the item.
 
 actor:  "person" if the investor named is the one who acted (wrote it, was interviewed or quoted, spoke, led the deal);
-        "firm" if their firm acted (the firm invested, published, hosted) but the person is not named;
+        "firm" if their firm acted (the firm invested, published, hosted) but the person is not named. Each item says
+        how it was found: a funding-round headline "found by searching the firm's exact name" means the firm is named
+        in that article about the round, so treat it as actor "firm", kind "invested" (all articles about that round
+        alike), unless the headline itself credits other investors only;
         "no" if it is about someone else (a different person with the same name, a company merely in the same story,
         a deal by another investor, generic market news).
 kind:   invested (new investment / led a round) | wrote (post, article, op-ed, newsletter) | said (interview, podcast,
@@ -62,6 +66,8 @@ relevance to the founder's space, 0-3 (be strict, judge only what the text says)
             commerce or SMB infrastructure, AI for operations;
         1 = general startup, venture, fundraising or India-ecosystem activity; real estate; fintech; climate;
         0 = unrelated (consumer brands, public-market share sales, personal news).
+event:  short kebab-case id of the real-world event behind the item, identical for every article covering the same
+        event, e.g. "8vc-gallatin-series-a", "anandan-liftoff-nation-book", "tunguz-post-ai-commoditization".
 summary: <= 18 words, plain fact, e.g. "Led Rs 40 Cr Series A in FreightTiger, a trucking SaaS".
 overall: <= 35 words: what this investor has been doing in the last 30 days that matters for the founder, citing
         dates like "8 Oct". Only use items with actor person/firm. If nothing qualifies, return "".
@@ -93,8 +99,12 @@ def judge(batch):
     for vc, items in batch:
         if not items:
             continue
-        lines = ["- [%d] %s | %s | %s%s" % (i, it["title"], it["source"], _iso(it["published"]),
-                                             (" | " + it["snippet"][:160]) if it.get("snippet") else "")
+        how = {"news": "found by searching the person's exact name",
+               "firm_news": "found by searching the firm's exact name + logistics words, so the firm IS named in the article",
+               "blog": "from their own blog feed", "podcast": "podcast episode that mentions them",
+               "search": "from Google Search"}
+        lines = ["- [%d] %s | %s | %s | %s%s" % (i, it["title"], it["source"], _iso(it["published"]), how.get(it["origin"], ""),
+                                                  (" | " + it["snippet"][:160]) if it.get("snippet") else "")
                  for i, it in enumerate(items)]
         blocks.append("INVESTOR vc=%d: %s (%s). Thesis: %s\n%s" % (vc["id"], vc["name"], vc["firm"],
                                                                    vc.get("thesis") or "-", "\n".join(lines)))
@@ -263,16 +273,21 @@ def process(run_id, vc_ids, workers=8, judge_size=10):
             if p < 4:
                 continue
             kept.append(dict(it, kind=kind, relevance=rel, actor=j["actor"], summary=j.get("summary", "")[:200],
-                             points=round(p, 1)))
+                             event=(j.get("event") or it["url"])[:80], points=round(p, 1)))
         kept.sort(key=lambda s: s["points"], reverse=True)
+        # one real-world event = one signal, however many outlets covered it (the others are kept as "also covered")
+        seen_ev = set()
+        for k in kept:
+            k["dup"] = k["event"] in seen_ev
+            seen_ev.add(k["event"])
 
-        prev = _db.q("select max(published) as d from signals where vc_id = $1 and points >= 4", [vc["id"]])
+        prev = _db.q("select max(published) as d from signals where vc_id = $1 and about_vc and points >= 4", [vc["id"]])
         last_any = _d(prev[0]["d"]) if prev and prev[0]["d"] else None
         if kept:
             newest = max(_d(s["published"]) for s in kept)
             last_any = max(last_any, newest) if last_any else newest
 
-        total, breakdown, strength, days = score(vc, kept, today)
+        total, breakdown, strength, days = score(vc, [k for k in kept if not k["dup"]], today)
         hook = (v or {}).get("hook", "") if kept else ""
         action = action_for(vc, total, strength, days, hook, kept[0] if kept else None, today, last_any)
         if kept:
@@ -291,13 +306,14 @@ def process(run_id, vc_ids, workers=8, judge_size=10):
         for s in items:
             k = next((x for x in kept if x["url"] == s["url"]), None)
             stmts.append(("insert into signals (vc_id, url, title, source, origin, published, kind, relevance, about_vc, "
-                          "summary, points, run_id) values ($1,$2,$3,$4,$5,$6::date,$7,$8,$9,$10,$11,$12) "
+                          "summary, points, run_id, event, dup) values ($1,$2,$3,$4,$5,$6::date,$7,$8,$9,$10,$11,$12,$13,$14) "
                           "on conflict (vc_id, url) do update set kind = excluded.kind, relevance = excluded.relevance, "
                           "about_vc = excluded.about_vc, summary = excluded.summary, points = excluded.points, "
-                          "run_id = excluded.run_id",
+                          "run_id = excluded.run_id, event = excluded.event, dup = excluded.dup",
                           [vc["id"], s["url"], s["title"], s["source"], s["origin"], _iso(s["published"]),
                            k["kind"] if k else None, k["relevance"] if k else 0, bool(k),
-                           k["summary"] if k else None, k["points"] if k else 0, run_id]))
+                           k["summary"] if k else None, k["points"] if k else 0, run_id,
+                           k["event"] if k else None, bool(k and k["dup"])]))
         stmts.append(("insert into vc_changes (run_id, vc_id, old_score, new_score, old_action, new_action) "
                       "values ($1,$2,$3,$4,$5,$6) on conflict do nothing",
                       [run_id, vc["id"], vc.get("follow_up_score"), total, vc.get("recommended_action"), action]))
@@ -307,7 +323,7 @@ def process(run_id, vc_ids, workers=8, judge_size=10):
                       [vc["id"], _iso(last_any), summary[:600], total, action[:400]]))
         _db.tx(stmts)
         report.append({"id": vc["id"], "name": vc["name"], "firm": vc["firm"], "score": total, "old": vc.get("follow_up_score"),
-                       "action": action.split(" · ")[0], "scanned": len(items), "kept": len(kept), "tally": tally,
+                       "action": action.split(" · ")[0], "scanned": len(items), "kept": len([k for k in kept if not k["dup"]]), "tally": tally,
                        "breakdown": breakdown})
 
     done = [r for r in report if not r.get("skipped")]

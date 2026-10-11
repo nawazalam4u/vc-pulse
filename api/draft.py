@@ -19,7 +19,7 @@ class handler(BaseHTTPRequestHandler):
             vid = int(_http.body(self).get("id") or 0)
             vc = _db.q("select * from vcs where id = $1", [vid])[0]
             sig = _db.q("select title, source, published, kind, summary, url from signals where vc_id = $1 and about_vc "
-                        "and points >= 4 and published >= current_date - 30 order by points desc limit 3", [vid])
+                        "and not coalesce(dup, false) and points >= 4 and published >= current_date - 30 order by points desc limit 3", [vid])
         except (ValueError, IndexError, _db.DBError):
             return _http.send(self, {"error": "investor not found"}, 404)
         if not sig:

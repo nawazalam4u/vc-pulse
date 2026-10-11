@@ -44,7 +44,7 @@ class handler(BaseHTTPRequestHandler):
         except (ValueError, _db.DBError) as e:
             return _http.send(self, {"error": str(e)}, 400)
         today = _sources.today()
-        live = [s for s in sig if s["about_vc"] and float(s["points"] or 0) >= 4 and s["published"] >= _sources.cutoff().isoformat()]
+        live = [s for s in sig if s["about_vc"] and not s.get("dup") and float(s["points"] or 0) >= 4 and s["published"] >= _sources.cutoff().isoformat()]
         for s in live:
             s["points"] = float(s["points"])
         total, breakdown, strength, days = _engine.score(vc, live, today)
