@@ -5,7 +5,7 @@ import urllib.request
 
 import _db
 
-APP = os.environ.get("APP_URL", "https://vc-pulse.vercel.app")
+APP = os.environ.get("APP_URL", "https://vc-pulse-lime.vercel.app")
 
 
 def configured():

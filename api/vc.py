@@ -3,6 +3,11 @@ GET    ?id=N          one investor: all evidence (kept AND rejected), score brea
 PATCH  {id, fields}   Vikram edits his own columns            (needs key; FOUNDER login)
 POST   {rows: [...]}  add investors / import his spreadsheet  (needs key; FOUNDER login)
 DELETE ?id=N          remove an investor                       (needs key; FOUNDER login)"""
+import os
+import sys
+
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))  # lets Vercel find the _helper modules
+
 from http.server import BaseHTTPRequestHandler
 
 import _db

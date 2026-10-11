@@ -1,6 +1,6 @@
 # VC Pulse: VC fundraising pipeline intelligence
 
-**Live:** https://vc-pulse.vercel.app · **How it works / course brief:** https://vc-pulse.vercel.app/brief
+**Live:** https://vc-pulse-lime.vercel.app · **How it works / course brief:** https://vc-pulse-lime.vercel.app/brief
 
 Vikram is raising a Seed round for a B2B logistics SaaS and tracks 50 VCs in a table. Twice a week (Monday and Thursday, 07:00 IST) VC Pulse checks every investor against **live public data from the last 30 days**: news, interviews, deals, blog posts and podcasts. **Gemini Flash** judges each item, and plain code turns that into a follow-up score and a recommended action. It updates **only four signal columns** in his table. His contact history and notes are protected by the database itself.
 

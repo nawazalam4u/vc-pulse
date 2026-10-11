@@ -3,6 +3,11 @@ GET   what each login is allowed to update (read from Postgres' own permission t
 POST  {id}  the "try to break it" test: the robot tries to overwrite a note, the edit screen tries to fake a score.
       Each attempt runs in a transaction that ends in a forced error, so even if a permission were ever missing,
       nothing could actually change. Safe to press any number of times."""
+import os
+import sys
+
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))  # lets Vercel find the _helper modules
+
 from http.server import BaseHTTPRequestHandler
 
 import _db

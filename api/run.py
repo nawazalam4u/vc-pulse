@@ -1,6 +1,11 @@
 """POST /api/run  {"action": "start" | "batch" | "finish", "run": id, "ids": [...]}
 The browser drives a run in small batches so Vikram sees live progress (each call stays well under Vercel's limit).
 Anyone may start a run if the last one finished 10+ minutes ago; with Vikram's key, any time."""
+import os
+import sys
+
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))  # lets Vercel find the _helper modules
+
 from http.server import BaseHTTPRequestHandler
 
 import _http

@@ -1,5 +1,10 @@
 """POST /api/draft {id} - Gemini Flash drafts Vikram's opener from the evidence. A draft only: nothing is sent,
 and nothing is written to his table. He edits and sends it himself (the human stays in charge of the relationship)."""
+import os
+import sys
+
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))  # lets Vercel find the _helper modules
+
 from http.server import BaseHTTPRequestHandler
 
 import _db

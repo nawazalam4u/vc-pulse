@@ -1,4 +1,9 @@
 """GET /api/pipeline - Vikram's table + latest evidence + run history (read-only)."""
+import os
+import sys
+
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))  # lets Vercel find the _helper modules
+
 from http.server import BaseHTTPRequestHandler
 
 import _http
