@@ -20,7 +20,7 @@ COMPANY = ("Haulr, a seed-stage B2B logistics SaaS from India (freight visibilit
 
 KIND_W = {"invested": 40, "wrote": 34, "said": 30, "appeared": 26, "mentioned": 14, "other": 6}
 REL_M = {3: 1.0, 2: 0.6, 1: 0.3, 0: 0.0}
-ACTOR_M = {"person": 1.0, "firm": 0.7}
+ACTOR_M = {"person": 1.0, "firm": 0.85}  # deals are announced in the firm's name, so firm acts count nearly fully
 KIND_VERB = {"invested": "invested", "wrote": "wrote", "said": "spoke", "appeared": "appeared at an event",
              "mentioned": "was in the news"}
 
