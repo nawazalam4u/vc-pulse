@@ -24,6 +24,11 @@ Vercel Cron (Mon/Thu 07:00 IST) or "Refresh now"
 
 See `db/roles.sql`. Every run stores an MD5 fingerprint of Vikram's columns before and after. The **Notes guard** tab has a live "attack my own database" button.
 
+## Quality: measured, tested, audited
+- **Accuracy** (`tests/eval_judge.py`, 57 hand-labelled live items in `data/eval_gold.json`): attribution precision **100%**, recall **89%**, accuracy **95%**; logistics label 100%. Measured on the fallback model (worst case).
+- **Tests:** `tests/test_scoring.py` (22 rule checks, offline) · `tests/test_guard.py` (26 live permission checks).
+- **Safeguards:** evidence must name the investor; blog posts are author-checked; one event = one signal; hooks only from kept evidence; any source/AI failure keeps the last verdict (run marked `partial`); one run at a time (unique index) with HMAC run tickets; cron has priority and a 200 s budget; CSP and http(s)-only links; rate limits on public AI actions.
+
 ## Project layout
 ```
 api/_engine.py    gather -> judge -> score -> write (the core)
@@ -35,7 +40,8 @@ api/cron.py       Vercel Cron entry point (all 50 investors, then optional Teleg
 api/pipeline.py, vc.py, proof.py, draft.py, health.py
 db/schema.sql, db/roles.sql     plain Postgres: runs the same on Neon or Supabase
 public/           the dashboard (index.html) and the course brief (brief.html)
-tests/            scoring rules (offline) and permissions (live database)
+tests/            scoring rules (offline), permissions (live database), AI accuracy evaluation
+docs/             components map, nine checks, study guide (PDF)
 tools/            setup_db.py (tables + logins), seed.py (Vikram's 50 investors)
 ```
 
