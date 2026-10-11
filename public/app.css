@@ -5,19 +5,20 @@
   --park: #8b8fa3; --park2: #f1f2f6; --ok: #12a66a; --ok2: #e6f7ef; --bad: #e5384f; --bad2: #fdecee;
   --mine: #2f80ed; --mine2: #eef5ff; --sig: #6d4aff; --sig2: #f3efff;
   --r: 16px; --shadow: 0 1px 2px rgba(20,18,43,.05), 0 8px 24px rgba(20,18,43,.06);
-  font-family: Inter, system-ui, -apple-system, Segoe UI, sans-serif; color: var(--ink);
+  font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", Inter, system-ui, "Segoe UI", sans-serif; color: var(--ink);
+  -webkit-font-smoothing: antialiased;
 }
 * { box-sizing: border-box; }
 [hidden] { display: none !important; }
 body { margin: 0; background: var(--bg); font-size: 14px; line-height: 1.45; }
 a { color: var(--violet); text-decoration: none; }
 a:hover { text-decoration: underline; }
-h1, h2, h3, .display { font-family: "Space Grotesk", Inter, sans-serif; letter-spacing: -.01em; }
+h1, h2, h3, .display { font-family: -apple-system, BlinkMacSystemFont, "SF Pro Display", "Space Grotesk", Inter, sans-serif; letter-spacing: -.02em; }
 button { font: inherit; cursor: pointer; }
 .wrap { max-width: 1320px; margin: 0 auto; padding: 0 20px; }
 
 /* top bar */
-.top { background: var(--navy); color: #fff; position: sticky; top: 0; z-index: 30; }
+.top { background: rgba(15,13,46,.82); -webkit-backdrop-filter: saturate(180%) blur(20px); backdrop-filter: saturate(180%) blur(20px); color: #fff; position: sticky; top: 0; z-index: 30; border-bottom: 1px solid rgba(255,255,255,.06); }
 .top .wrap { display: flex; align-items: center; gap: 18px; height: 60px; }
 .logo { display: flex; align-items: center; gap: 10px; font-family: "Space Grotesk"; font-weight: 700; font-size: 19px; color: #fff; }
 .logo svg { width: 30px; height: 30px; }
@@ -50,8 +51,9 @@ button { font: inherit; cursor: pointer; }
 
 /* stats */
 .stats { display: grid; grid-template-columns: repeat(6, 1fr); gap: 12px; margin-top: -48px; }
-.stat { background: var(--panel); border-radius: var(--r); padding: 14px 16px; box-shadow: var(--shadow); border: 1px solid var(--line); cursor: default; }
-.stat b { display: block; font-family: "Space Grotesk"; font-size: 28px; line-height: 1.1; }
+.stat { background: var(--panel); border-radius: 18px; padding: 16px 18px; box-shadow: var(--shadow); border: 1px solid rgba(20,18,43,.04); cursor: default; transition: transform .2s cubic-bezier(.2,.8,.2,1); }
+.stat:hover { transform: translateY(-2px); }
+.stat b { display: block; font-family: -apple-system, BlinkMacSystemFont, "SF Pro Display", "Space Grotesk"; font-size: 30px; font-weight: 700; line-height: 1.1; letter-spacing: -.02em; }
 .stat span { color: var(--ink2); font-size: 12.5px; }
 .stat.hot b { color: var(--hot); } .stat.warm b { color: var(--warm); } .stat.wait b { color: var(--wait); }
 .stat.park b { color: var(--park); } .stat.scan b { color: var(--violet); } .stat.safe b { color: var(--ok); }
@@ -201,3 +203,13 @@ code { font-family: ui-monospace, Menlo, monospace; font-size: 12px; background:
   .hero h1 { font-size: 23px; } .hero .cta { margin-left: 0; align-items: flex-start; } .tabs { margin-left: 0; }
   .top .right .pill.dark { display: none; } .wrap { padding: 0 16px; } .run { grid-template-columns: 1fr 1fr; }
 }
+
+/* how it works strip */
+.how { display: grid; grid-template-columns: repeat(4, 1fr); gap: 0; margin: 18px 0 4px; background: #fff; border-radius: 18px; border: 1px solid rgba(20,18,43,.05); box-shadow: var(--shadow); overflow: hidden; }
+.step { display: flex; gap: 12px; align-items: center; padding: 14px 16px; position: relative; }
+.step + .step::before { content: ""; position: absolute; left: 0; top: 18%; bottom: 18%; width: 1px; background: var(--line); }
+.step .ic { width: 40px; height: 40px; border-radius: 12px; display: grid; place-items: center; font-size: 19px; flex: none; background: linear-gradient(135deg, #f3efff, #ffeef5); }
+.step b { display: block; font-size: 14px; } .step span { color: var(--ink2); font-size: 12.5px; line-height: 1.35; display: block; }
+@media (max-width: 900px) { .how { grid-template-columns: 1fr 1fr; } .step:nth-child(3)::before { display: none; } }
+@media (max-width: 520px) { .how { grid-template-columns: 1fr; } .step + .step::before { left: 16px; right: 16px; top: 0; bottom: auto; width: auto; height: 1px; } }
+@media (prefers-reduced-motion: reduce) { *, *::before { animation: none !important; transition: none !important; } }

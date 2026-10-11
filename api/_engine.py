@@ -114,6 +114,17 @@ def judge(batch):
 
 # ---------------------------------------------------------------- scoring (code, explainable)
 
+LOGISTICS_WORDS = re.compile(r"logistic|freight|supply.?chain|truck|shipping|shipper|warehous|fleet|cargo|courier|"
+                             r"last.?mile|transport|3pl|carrier|dispatch|port\b|ports\b|mobility|delivery", re.I)
+
+
+def verify_relevance(rel, item):
+    """Code checks the AI: a 'logistics' (3) rating needs a logistics word in the source text itself."""
+    if rel >= 3 and not LOGISTICS_WORDS.search(item.get("title", "") + " " + item.get("snippet", "")):
+        return 2
+    return rel
+
+
 def recency(days):
     return 1.0 if days <= 7 else max(0.4, 1 - 0.6 * (days - 7) / 23.0)
 
@@ -245,7 +256,7 @@ def process(run_id, vc_ids, workers=8, judge_size=10):
             j = (v or {}).get("items", {}).get(i)
             if not j or j.get("actor") not in ("person", "firm"):
                 continue
-            rel = max(0, min(3, int(j.get("relevance") or 0)))
+            rel = verify_relevance(max(0, min(3, int(j.get("relevance") or 0))), it)
             kind = j.get("kind") if j.get("kind") in KIND_W else "other"
             days = (today - _d(it["published"])).days
             p = KIND_W[kind] * REL_M[rel] * ACTOR_M[j["actor"]] * recency(days)

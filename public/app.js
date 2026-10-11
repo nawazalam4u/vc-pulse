@@ -85,7 +85,7 @@ async function load(flashIds = []) {
 }
 
 function renderHeader() {
-  const h = new Date().getHours();
+  const h = +new Date().toLocaleString("en-GB", { hour: "2-digit", hour12: false, timeZone: "Asia/Kolkata" });  // Vikram is in India
   $("#greet").textContent = (h < 12 ? "Good morning" : h < 17 ? "Good afternoon" : "Good evening") + ", Vikram.";
   $("#nVcs").textContent = S.vcs.length;
   const tags = S.vcs.map((v) => actTag(v.recommended_action));

@@ -40,6 +40,11 @@ check("score is always within 0-100", all(0 <= e.score(v, s, T)[0] <= 100 for v 
                                           for s in ([], [sig("invested", 3, 0)] * 5)))
 check("next run after Sunday 11 Oct is Monday 12 Oct", e.next_run_day(T) == dt.date(2026, 10, 12))
 
+check("AI says logistics but text has no logistics word -> capped at 2",
+      e.verify_relevance(3, {"title": "Fifth Wall's partner on spotting real estate's next hot tech"}) == 2)
+check("AI says logistics and the text agrees -> stays 3",
+      e.verify_relevance(3, {"title": "Dynamo leads seed in a freight visibility startup"}) == 3)
+
 for n, ok in checks:
     print("PASS" if ok else "FAIL", "-", n)
 print("%d/%d passed" % (sum(ok for _, ok in checks), len(checks)))
