@@ -45,6 +45,18 @@ check("AI says logistics but text has no logistics word -> capped at 2",
 check("AI says logistics and the text agrees -> stays 3",
       e.verify_relevance(3, {"title": "Dynamo leads seed in a freight visibility startup"}) == 3)
 
+V = {"name": "Rahul Chowdhri", "firm": "Stellaris Venture Partners"}
+check("deal headline without the firm's name or logistics -> not a signal",
+      not e.names_them(V, {"origin": "firm_news", "title": "Lumio maker Circuit House raises $12M Series A"}, "invested"))
+check("logistics deal found by the firm search -> signal",
+      e.names_them(V, {"origin": "firm_news", "title": "Gallatin raises $50M to digitize military logistics"}, "invested"))
+check("firm named in a deal headline -> signal",
+      e.names_them(V, {"origin": "firm_news", "title": "Stellaris leads seed in SaaS startup"}, "invested"))
+check("person news must name them", not e.names_them(V, {"origin": "news", "title": "Weekly funding roundup"}, "said")
+      and e.names_them(V, {"origin": "news", "title": "Rahul Chowdhri on B2B SaaS"}, "said"))
+check("firm aliases parse brackets", e.firm_aliases("Andreessen Horowitz (a16z)") == ["andreessen horowitz", "a16z"]
+      and e.firm_aliases("Z47 (formerly Matrix Partners India)") == ["z47"])
+
 for n, ok in checks:
     print("PASS" if ok else "FAIL", "-", n)
 print("%d/%d passed" % (sum(ok for _, ok in checks), len(checks)))

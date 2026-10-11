@@ -135,6 +135,33 @@ def verify_relevance(rel, item):
     return rel
 
 
+def firm_aliases(firm):
+    """'Andreessen Horowitz (a16z)' -> ['andreessen horowitz', 'a16z']; 'Z47 (formerly Matrix Partners India)' -> ['z47']"""
+    main, _, rest = firm.partition("(")
+    names = [main]
+    inner = rest.rstrip(")").strip()
+    if inner and not inner.lower().startswith(("formerly", "india")):
+        names.append(inner)
+    out = []
+    for n in names:
+        n = re.sub(r"\b(Venture Partners|Partners|Ventures|Venture|Capital|Fund|Management)\b", "", n).strip(" ,.-")
+        if len(n) >= 3:
+            out.append(n.lower())
+    return out
+
+
+def names_them(vc, item, kind):
+    """Code checks the evidence: the text we show Vikram must name his investor (or, for a deal, be in his space)."""
+    if item["origin"] in ("blog", "search"):
+        return True  # their own blog / a search for them
+    text = (item.get("title", "") + " " + item.get("snippet", "")).lower()
+    last = vc["name"].split()[-1].lower()
+    named = last in text or any(a in text for a in firm_aliases(vc["firm"]))
+    if item["origin"] == "firm_news":
+        return kind == "invested" and (named or bool(LOGISTICS_WORDS.search(text)))
+    return named
+
+
 def recency(days):
     return 1.0 if days <= 7 else max(0.4, 1 - 0.6 * (days - 7) / 23.0)
 
@@ -268,6 +295,8 @@ def process(run_id, vc_ids, workers=8, judge_size=10):
                 continue
             rel = verify_relevance(max(0, min(3, int(j.get("relevance") or 0))), it)
             kind = j.get("kind") if j.get("kind") in KIND_W else "other"
+            if not names_them(vc, it, kind):
+                continue
             days = (today - _d(it["published"])).days
             p = KIND_W[kind] * REL_M[rel] * ACTOR_M[j["actor"]] * recency(days)
             if p < 4:
@@ -302,7 +331,10 @@ def process(run_id, vc_ids, workers=8, judge_size=10):
             report.append({"id": vc["id"], "name": vc["name"], "skipped": True, "tally": tally})
             continue
 
-        stmts = []
+        # this run's view is the current state: drop last-30-day evidence from earlier runs that this run no longer
+        # sees (older history is kept for "last signal seen")
+        stmts = [("delete from signals where vc_id = $1 and coalesce(run_id, 0) <> $2 and published >= current_date - 30",
+                  [vc["id"], run_id])]
         for s in items:
             k = next((x for x in kept if x["url"] == s["url"]), None)
             stmts.append(("insert into signals (vc_id, url, title, source, origin, published, kind, relevance, about_vc, "
