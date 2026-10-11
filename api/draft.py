@@ -24,7 +24,7 @@ class handler(BaseHTTPRequestHandler):
         except (TypeError, ValueError, IndexError, _db.DBError):
             return _http.send(self, {"error": "investor not found"}, 404)
         editor = _http.has_key(self)
-        if not editor and _db.q("select count(*) as n from drafts where not editor and created_at > now() - interval '1 hour'")[0]["n"] >= 30:
+        if not editor and int(_db.q("select count(*) as n from drafts where not editor and created_at > now() - interval '1 hour'")[0]["n"]) >= 30:
             return _http.send(self, {"error": "Demo limit: 30 AI drafts an hour for visitors (keeps the free Gemini quota "
                                               "for the twice-weekly runs). Try again later."}, 429)
         if not sig:
