@@ -7,8 +7,12 @@ Who decides what:
   * The database decides WHAT MAY BE WRITTEN: the engine login can only touch the 4 signal columns.
 """
 import datetime as dt
+import hashlib
+import hmac
 import json
+import os
 import re
+import time
 from concurrent.futures import ThreadPoolExecutor
 
 import _db
@@ -26,7 +30,7 @@ KIND_VERB = {"invested": "invested", "wrote": "wrote", "said": "spoke", "appeare
 
 VIKRAM_COLS = "id, name, firm, thesis, region, status, last_contact_date, contact_history, notes, feed_url"
 FINGERPRINT = ("select md5(coalesce(string_agg(concat_ws('|', %s), '~' order by id), '')) as h, count(*) as n from vcs"
-               % VIKRAM_COLS)
+               % ", ".join("coalesce(%s::text, '∅')" % c.strip() for c in VIKRAM_COLS.split(",")))
 
 JUDGE_SCHEMA = {
     "type": "ARRAY",
@@ -43,8 +47,9 @@ JUDGE_SCHEMA = {
                 "summary": {"type": "STRING"}},
                 "required": ["i", "actor", "kind", "relevance", "event", "summary"]}},
             "overall": {"type": "STRING"},
-            "hook": {"type": "STRING"}},
-        "required": ["vc", "items", "overall", "hook"]}}
+            "hook": {"type": "STRING"},
+            "hook_item": {"type": "INTEGER"}},
+        "required": ["vc", "items", "overall", "hook", "hook_item"]}}
 
 JUDGE_SYSTEM = """You are the research analyst for a founder raising a Seed round. His company: %s.
 For each investor you get a numbered list of public items (headline, source, date) found in the last 30 days.
@@ -73,7 +78,8 @@ overall: <= 35 words: what this investor has been doing in the last 30 days that
         dates like "8 Oct". Only use items with actor person/firm. If nothing qualifies, return "".
 hook:   <= 22 words, written to THIS investor about THEIR OWN act (an item with actor person/firm): the specific,
         honest opening line for the founder's email, e.g. "Saw Peak XV raise Surge checks to $5M on 29 Sep."
-        Never mention other people. Return "" if nothing qualifies.""" % COMPANY
+        Never mention other people. Return "" if nothing qualifies.
+hook_item: the [number] of the item the hook is based on (-1 if hook is "").""" % COMPANY
 
 
 def _iso(d):
@@ -101,9 +107,10 @@ def judge(batch):
             continue
         how = {"news": "found by searching the person's exact name",
                "firm_news": "found by searching the firm's exact name + logistics words, so the firm IS named in the article",
-               "blog": "from their own blog feed", "podcast": "podcast episode that mentions them",
+               "blog": "from the blog feed on file for them (may be their firm's blog: check the author)", "podcast": "podcast episode that mentions them",
                "search": "from Google Search"}
-        lines = ["- [%d] %s | %s | %s | %s%s" % (i, it["title"], it["source"], _iso(it["published"]), how.get(it["origin"], ""),
+        lines = ["- [%d] %s | %s | %s | %s%s%s" % (i, it["title"], it["source"], _iso(it["published"]), how.get(it["origin"], ""),
+                                                  (" | author: " + it["author"]) if it.get("author") else "",
                                                   (" | " + it["snippet"][:160]) if it.get("snippet") else "")
                  for i, it in enumerate(items)]
         blocks.append("INVESTOR vc=%d: %s (%s). Thesis: %s\n%s" % (vc["id"], vc["name"], vc["firm"],
@@ -116,7 +123,8 @@ def judge(batch):
         try:
             res[int(row["vc"])] = {"items": {int(x["i"]): x for x in row.get("items", [])},
                                    "overall": (row.get("overall") or "").strip(),
-                                   "hook": (row.get("hook") or "").strip()}
+                                   "hook": (row.get("hook") or "").strip(),
+                                   "hook_item": row.get("hook_item", -1)}
         except (KeyError, TypeError, ValueError):
             continue
     return res
@@ -150,15 +158,30 @@ def firm_aliases(firm):
     return out
 
 
+def blog_actor(vc, item, actor):
+    """Firm-wide blogs (a16z, Point Nine...) have many authors: a post counts as THIS partner's only if they wrote it."""
+    if item["origin"] != "blog" or actor != "person":
+        return actor
+    last = vc["name"].split()[-1].lower()
+    author = (item.get("author") or "").lower()
+    if author:
+        return "person" if last in author else "firm"
+    host = (item.get("url", "").split("/")[2] if "//" in item.get("url", "") else "").lower()
+    return "person" if last in host.replace("-", "") else "firm"  # personal site/Substack (e.g. tomtunguz.com)
+
+
+STRICT_LOGISTICS = re.compile(r"logistic|freight|supply.?chain|truck|shipping|shipper|warehous|fleet|cargo|3pl", re.I)
+
+
 def names_them(vc, item, kind):
     """Code checks the evidence: the text we show Vikram must name his investor (or, for a deal, be in his space)."""
-    if item["origin"] in ("blog", "search"):
-        return True  # their own blog / a search for them
+    if item["origin"] == "blog":
+        return True  # the feed on file for them (authorship is checked separately in blog_actor)
     text = (item.get("title", "") + " " + item.get("snippet", "")).lower()
     last = vc["name"].split()[-1].lower()
     named = last in text or any(a in text for a in firm_aliases(vc["firm"]))
     if item["origin"] == "firm_news":
-        return kind == "invested" and (named or bool(LOGISTICS_WORDS.search(text)))
+        return kind == "invested" and (named or bool(STRICT_LOGISTICS.search(text)))
     return named
 
 
@@ -199,7 +222,7 @@ def score(vc, signals, today):
 
     status = vc.get("status") or "yet_to_reach_out"
     last = _d(vc.get("last_contact_date"))
-    days = (today - last).days if last else None
+    days = max(0, (today - last).days) if last else None
     timing = 0
     if status == "waiting_response" and days is not None:
         if days < 7:
@@ -222,40 +245,69 @@ def score(vc, signals, today):
     return total, breakdown, strength, days
 
 
-def action_for(vc, total, strength, days, hook, best, today, last_any):
+def action_for(vc, total, strength, days, hook, best, today, last_any, mention=None):
     status = vc.get("status") or "yet_to_reach_out"
     recheck = short_date(next_run_day(today))
-    if status == "waiting_response" and days is not None and days < 7:
-        wait_till = short_date(_d(vc["last_contact_date"]) + dt.timedelta(days=7))
-        extra = (" Save this hook for then: " + hook) if hook and strength >= 15 else ""
-        return "WAIT · You followed up %d days ago; give them until %s.%s" % (days, wait_till, extra)
+    if status == "waiting_response" and days is not None and days < 14:
+        wait_till = short_date(_d(vc["last_contact_date"]) + dt.timedelta(days=14))
+        extra = (" Hook ready for then: " + hook) if hook and strength >= 15 else ""
+        return "WAIT · You followed up %d day%s ago; give them until %s before nudging.%s" % (
+            days, "" if days == 1 else "s", wait_till, extra)
     if strength <= 0:
-        since = (" Last signal seen %s." % short_date(last_any)) if last_any else ""
-        fit = " Strong thesis fit, so keep them on the list; don't chase now." if thesis_fit(vc.get("thesis"))[0] >= 15 else ""
-        return "PARK · Quiet: no posts, deals, talks or interviews in 30 days.%s%s Recheck %s." % (since, fit, recheck)
+        quiet_days = (today - mention).days if mention else None
+        if quiet_days is None or quiet_days > 90:
+            quiet = "Quiet for 3+ months: no news naming them with their firm since %s." % (
+                short_date(mention) if mention else "at least a year")
+        else:
+            quiet = "Quiet: nothing in 30 days (last in the news %s)." % short_date(mention)
+        strong_fit = thesis_fit(vc.get("thesis"))[0] >= 15
+        if status == "waiting_response" and days is not None and days > 45:
+            rel = " No reply in %d days either: don't chase this week; one light check-in next month, or move on." % days
+        elif status == "waiting_response" and days is not None:
+            rel = " You're waiting %d days for a reply: let it sit, no nudge without a reason." % days
+        elif strong_fit:
+            rel = " Strong thesis fit: keep them on the list for when they resurface."
+        else:
+            rel = " Not worth first-touch energy this week."
+        return "PARK · %s%s Recheck %s." % (quiet, rel, recheck)
     lead = hook or (best and best.get("summary")) or "reference their recent activity"
     if total >= 55:
         verb = "NUDGE" if status == "waiting_response" else "REACH OUT"
         return "%s · This week. %s" % (verb, lead)
     if total >= 35:
         return "WARM · If you have bandwidth this week. %s" % lead
-    return "LOW · Active, but not on your space right now. Recheck %s." % recheck
+    return "LOW · Some public activity, but weak, old or off-topic for you this week. Recheck %s." % recheck
 
 
 # ---------------------------------------------------------------- the run
 
+def run_token(run_id):
+    """Ticket proving the caller started this run; required for every batch/finish call."""
+    key = (os.environ.get("CRON_SECRET") or os.environ.get("DASHBOARD_KEY") or "dev").encode()
+    return hmac.new(key, ("run:%s" % run_id).encode(), hashlib.sha256).hexdigest()[:32]
+
+
+def check_token(run_id, token):
+    return hmac.compare_digest(run_token(run_id), str(token or ""))
+
+
 def start_run(trigger):
-    # a run that has been "running" for over 8 minutes died (timeout); close it so it never blocks the next one
+    # a run "running" for over 12 minutes died (browser closed / timeout): close it so it never blocks the next one.
+    # The scheduled run always wins: it supersedes any manual run still in progress.
     _db.q("update runs set status = 'abandoned', finished_at = now() "
-          "where status = 'running' and started_at < now() - interval '8 minutes'")
+          "where status = 'running' and (started_at < now() - interval '12 minutes' or $1 = 'cron')", [trigger])
     live = _db.q("select id from runs where status = 'running' order by id desc limit 1")
     if live:
         return live[0]["id"], False
     fp = _db.q(FINGERPRINT)[0]
     ids = [r["id"] for r in _db.q("select id from vcs order by id")]
-    rid = _db.q("insert into runs (trigger, vcs_total, notes_hash_before, sources) values ($1, $2, $3, $4::jsonb) "
-                "returning id", [trigger, len(ids), fp["h"],
-                                 json.dumps({"gemini_search": _sources.SEARCH_STATE["available"]})])[0]["id"]
+    try:
+        rid = _db.q("insert into runs (trigger, vcs_total, notes_hash_before, sources) values ($1, $2, $3, $4::jsonb) "
+                    "returning id", [trigger, len(ids), fp["h"],
+                                     json.dumps({"gemini_search": _sources.SEARCH_STATE["available"]})])[0]["id"]
+    except _db.DBError:  # someone else started a run in the same instant: the unique index let only one through
+        live = _db.q("select id from runs where status = 'running' order by id desc limit 1")
+        return (live[0]["id"] if live else 0), False
     return rid, True
 
 
@@ -268,6 +320,7 @@ def process(run_id, vc_ids, workers=8, judge_size=10):
     if not vc_ids:
         return []
     vcs = _db.q("select * from vcs where id = any($1::int[]) order by id", [list(vc_ids)])
+    _gemini.USED.clear()
     today = _sources.today()
 
     with ThreadPoolExecutor(max_workers=workers) as ex:
@@ -288,7 +341,7 @@ def process(run_id, vc_ids, workers=8, judge_size=10):
     for vc, items, tally in gathered:
         v = verdicts.get(vc["id"])
         kept = []
-        judged = v is not None or not items
+        judged = (v is not None or not items) and not _sources.news_failed(tally)
         for i, it in enumerate(items):
             j = (v or {}).get("items", {}).get(i)
             if not j or j.get("actor") not in ("person", "firm"):
@@ -297,6 +350,7 @@ def process(run_id, vc_ids, workers=8, judge_size=10):
             kind = j.get("kind") if j.get("kind") in KIND_W else "other"
             if not names_them(vc, it, kind):
                 continue
+            j = dict(j, actor=blog_actor(vc, it, j["actor"]))
             days = (today - _d(it["published"])).days
             p = KIND_W[kind] * REL_M[rel] * ACTOR_M[j["actor"]] * recency(days)
             if p < 4:
@@ -310,23 +364,37 @@ def process(run_id, vc_ids, workers=8, judge_size=10):
             k["dup"] = k["event"] in seen_ev
             seen_ev.add(k["event"])
 
-        prev = _db.q("select max(published) as d from signals where vc_id = $1 and about_vc and points >= 4", [vc["id"]])
+        prev = _db.q("select max(published) as d from signals where vc_id = $1 and about_vc and not coalesce(dup, false) "
+                     "and points >= 4 and published < current_date - 30", [vc["id"]])  # older history; this run decides the rest
         last_any = _d(prev[0]["d"]) if prev and prev[0]["d"] else None
         if kept:
             newest = max(_d(s["published"]) for s in kept)
             last_any = max(last_any, newest) if last_any else newest
 
         total, breakdown, strength, days = score(vc, [k for k in kept if not k["dup"]], today)
-        hook = ((v or {}).get("hook", "") if kept else "").strip().rstrip(".… ")
+        mention = None
+        if strength <= 0 and judged:
+            try:
+                mention = _sources.last_mention(vc)
+            except Exception:
+                mention = None
+        counted = [k for k in kept if not k["dup"]]
+        hook_src = items[v["hook_item"]] if v and isinstance(v.get("hook_item"), int) and 0 <= v["hook_item"] < len(items) else None
+        hook_ok = hook_src is not None and any(k["event"] == next((x["event"] for x in kept if x["url"] == hook_src["url"]), None)
+                                               for k in counted)
+        # the hook must come from evidence our code kept; otherwise fall back to the strongest kept item
+        hook = ((v or {}).get("hook", "") if hook_ok else (counted[0]["summary"] if counted else "")).strip().rstrip(".… ")
         hook = hook + "." if hook else ""
-        action = action_for(vc, total, strength, days, hook, kept[0] if kept else None, today, last_any)
+        action = action_for(vc, total, strength, days, hook, kept[0] if kept else None, today, last_any, mention)
         if kept:
             summary = (v or {}).get("overall") or "; ".join(
                 "%s: %s" % (short_date(s["published"]), s["summary"]) for s in kept[:2])
         else:
             checked = ["news", "firm deals"] + (["their blog"] if vc.get("feed_url") else []) + ["podcasts"] + (
                 ["web search"] if _sources.SEARCH_STATE["available"] else [])
-            summary = "No qualifying public activity in the last 30 days (checked %s)." % ", ".join(checked)
+            summary = "No qualifying public activity in the last 30 days (checked %s). %s" % (
+                ", ".join(checked), ("Last news naming them with their firm: %s." % short_date(mention)) if mention
+                else "No news naming them with their firm in the past year.")
         if not judged:
             # Gemini failed for this VC: keep yesterday's verdict instead of wrongly calling them quiet
             report.append({"id": vc["id"], "name": vc["name"], "skipped": True, "tally": tally})
@@ -354,7 +422,12 @@ def process(run_id, vc_ids, workers=8, judge_size=10):
         stmts.append(("update vcs set last_signal_date = $2::date, signal_summary = $3, follow_up_score = $4, "
                       "recommended_action = $5 where id = $1",
                       [vc["id"], _iso(last_any), summary[:600], total, action[:400]]))
-        _db.tx(stmts)
+        try:
+            _db.tx(stmts)
+        except Exception as e:  # one investor's write failing must not stop the other nine
+            _log(run_id, {"error": "write %s: %s" % (vc["name"], str(e)[:150])})
+            report.append({"id": vc["id"], "name": vc["name"], "skipped": True, "tally": tally})
+            continue
         report.append({"id": vc["id"], "name": vc["name"], "firm": vc["firm"], "score": total, "old": vc.get("follow_up_score"),
                        "action": action.split(" · ")[0], "scanned": len(items), "kept": len([k for k in kept if not k["dup"]]), "tally": tally,
                        "breakdown": breakdown})
@@ -369,9 +442,10 @@ def process(run_id, vc_ids, workers=8, judge_size=10):
 
 def finish_run(run_id):
     fp = _db.q(FINGERPRINT)[0]
-    _db.q("update runs set status = 'done', finished_at = now(), notes_hash_after = $2, "
+    _db.q("update runs set status = case when vcs_done >= vcs_total then 'done' else 'partial' end, "
+          "finished_at = now(), notes_hash_after = $2, "
           "hot_count = (select count(*) from vcs where recommended_action like 'REACH OUT%' or recommended_action like 'NUDGE%'), "
-          "quiet_count = (select count(*) from vcs where recommended_action like 'PARK%'), "
+          "quiet_count = (select count(*) from vcs where recommended_action like 'PARK%' or recommended_action like 'LOW%'), "
           "sources = coalesce(sources, '{}'::jsonb) || $3::jsonb where id = $1",
           [run_id, fp["h"], json.dumps({"gemini_search": _sources.SEARCH_STATE["available"],
                                         "model": _gemini.LAST["model"], "models_used": _gemini.USED})])
@@ -383,6 +457,16 @@ def run_all(trigger="cron"):
     if not fresh:
         return {"run_id": rid, "status": "already running"}
     ids = [r["id"] for r in _db.q("select id from vcs order by id")]
-    report = process(rid, ids, workers=10, judge_size=10)
+    chunks = [ids[i:i + 10] for i in range(0, len(ids), 10)]
+    started, report = time.time(), []
+
+    def work(chunk):
+        if time.time() - started > 200:  # time budget: Vercel stops us at 300s; finish cleanly instead
+            return []
+        return process(rid, chunk, workers=10, judge_size=10)
+
+    with ThreadPoolExecutor(max_workers=3) as ex:
+        for r in ex.map(work, chunks):
+            report += r
     run = finish_run(rid)
     return {"run_id": rid, "run": run, "report": report}

@@ -44,7 +44,7 @@ def send(h, obj, status=200):
 def has_key(h):
     """Vikram's key (DASHBOARD_KEY) unlocks editing. Sent as header x-pulse-key."""
     want = os.environ.get("DASHBOARD_KEY", "")
-    got = h.headers.get("x-pulse-key", "") or query(h).get("key", "")
+    got = h.headers.get("x-pulse-key", "")  # header only: keys never appear in URLs or logs
     return bool(want) and hmac.compare_digest(want.encode(), got.encode())
 
 

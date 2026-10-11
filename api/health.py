@@ -19,7 +19,7 @@ class handler(BaseHTTPRequestHandler):
                "owner_login_on_server": bool(os.environ.get("DATABASE_URL")),
                "cron_secret": bool(os.environ.get("CRON_SECRET")), "editor_key": bool(os.environ.get("DASHBOARD_KEY")),
                "telegram": _notify.configured(), "window_days": _sources.WINDOW}
-        if "probe=1" in self.path:
+        if "probe=1" in self.path and _http.has_key(self):  # the live AI test costs quota: editor only
             try:
                 out["db_rows"] = _db.q("select count(*) as n from vcs")[0]["n"]
                 txt, _ = _gemini.generate("Reply with exactly: OK", timeout=30)

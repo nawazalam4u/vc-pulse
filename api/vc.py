@@ -8,6 +8,8 @@ import sys
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))  # lets Vercel find the _helper modules
 
+import datetime as dt
+import re
 from http.server import BaseHTTPRequestHandler
 
 import _db
@@ -18,14 +20,36 @@ import _sources
 FOUNDER_FIELDS = ["name", "firm", "thesis", "region", "status", "last_contact_date", "contact_history", "notes", "feed_url"]
 
 
+def norm_status(v):
+    v = (v or "").lower()
+    return "waiting_response" if ("wait" in v or "respon" in v or "follow" in v) else "yet_to_reach_out"
+
+
+def norm_date(v):
+    """Accepts 2026-09-07, 07/09/2026, 7-9-2026, 7 Sep 2026, Sep 7, 2026 (day first, Indian style). Else None."""
+    v = (v or "").strip()
+    for fmt in ("%Y-%m-%d", "%d/%m/%Y", "%d-%m-%Y", "%d.%m.%Y", "%d %b %Y", "%d %B %Y", "%b %d, %Y", "%B %d, %Y", "%d/%m/%y"):
+        try:
+            return dt.datetime.strptime(v[:20], fmt).date().isoformat()
+        except ValueError:
+            continue
+    return None
+
+
 def clean(row):
+    """Only Vikram's own columns are accepted; anything else in the request (e.g. follow_up_score) is ignored."""
     out = {}
+    row = {str(k).strip().lower().replace(" ", "_"): v for k, v in row.items()}
     for f in FOUNDER_FIELDS:
         if f in row:
             v = row[f]
             v = None if v in ("", None) else str(v).strip()[:2000]
-            if f == "status" and v not in ("yet_to_reach_out", "waiting_response"):
-                v = "yet_to_reach_out"
+            if f == "status":
+                v = norm_status(v)
+            elif f == "last_contact_date" and v:
+                v = norm_date(v)
+            elif f == "feed_url" and v and not re.match(r"^https?://", v, re.I):
+                v = None
             out[f] = v
     return out
 
@@ -61,7 +85,7 @@ class handler(BaseHTTPRequestHandler):
         sets = ", ".join("%s = $%d%s" % (f, i + 2, "::date" if f == "last_contact_date" else "") for i, f in enumerate(fields))
         try:
             _db.q("update vcs set %s where id = $1" % sets, [int(b.get("id"))] + list(fields.values()), role="founder")
-        except _db.DBError as e:
+        except (TypeError, ValueError, _db.DBError) as e:
             return _http.send(self, {"error": str(e)}, 400)
         _http.send(self, {"ok": True, "saved": list(fields)})
 

@@ -40,7 +40,7 @@
 <div class="hero" style="padding-bottom:34px"><div class="wrap">
   <h1>VC Fundraising Pipeline Intelligence</h1>
   <p>MESA Cohort C4 · AI and its Applications · Final examination · Nawaz Alam. Built and deployed on Vercel with Gemini Flash, Neon Postgres and live public data.</p>
-  <div class="toc"><a href="#brief">Automation brief</a><a href="#checks">Nine checks</a><a href="#cut">The Cut</a><a href="#map">Components map</a><a href="#guard">Notes guard</a><a href="#data">Live data</a><a href="#score">Scoring</a><a href="#flags">Assumptions</a><a href="#viva">Viva Q&amp;A</a></div>
+  <div class="toc"><a href="#brief">Automation brief</a><a href="#checks">Nine checks</a><a href="#cut">The Cut</a><a href="#map">Components map</a><a href="#guard">Notes guard</a><a href="#data">Live data</a><a href="#score">Scoring</a><a href="#eval">Accuracy</a><a href="#security">Security</a><a href="#flags">Assumptions</a><a href="#viva">Viva Q&amp;A</a></div>
 </div></div>
 
 <div class="doc">
@@ -127,13 +127,31 @@
 
 <h2 id="score">7 · Scoring (explainable by design)</h2>
 <p><b>Signal points</b> = type weight (invested 40 · wrote 34 · spoke 30 · event 26 · in the news 14) × topic fit (logistics 1.0 · adjacent B2B 0.6 · general 0.3) × who acted (the partner 1.0 · only their firm 0.85) × freshness (100% for 7 days, fading to 40% at day 30).<br>
-<b>Signal strength</b> = best + 40% of 2nd + 20% of 3rd, capped at 70. <b>Thesis fit</b> +3 / +8 / +15. <b>Timing</b> (from Vikram's own columns, read-only): followed up &lt;7 days ago −30 (don't pester), 7-14 days −10, waiting 14+ days with a fresh signal +10 (perfect nudge), not contacted yet with a fresh signal +10.<br>
-<b>Actions:</b> score ≥ 55 → REACH OUT / NUDGE · 35-54 → WARM · followed up &lt;7 days → WAIT · no signal → PARK · active but off-topic → LOW. Open any investor to see their maths.</p>
+<b>Signal strength</b> = best + 40% of 2nd + 20% of 3rd, capped at 70. <b>Thesis fit</b> +3 / +8 / +15. <b>Timing</b> (from Vikram's own columns, read-only): followed up &lt;7 days ago −30 (don't pester), 7-13 days −10, waiting 14+ days with a fresh signal +10 (perfect nudge), not contacted yet with a fresh signal +10.<br>
+<b>Actions:</b> followed up &lt;14 days ago → WAIT (hook saved for later) · score ≥ 55 → REACH OUT / NUDGE · 35-54 → WARM · weak/off-topic activity → LOW · no signal → PARK, worded by relationship ("waiting 60 days and quiet: one light check-in next month, or move on") and by how long they've been quiet (a 1-year lookback of news naming them <i>with</i> their firm separates "quiet this month" from "quiet for 3+ months"). Open any investor to see their maths.</p>
+
+<h2 id="eval">7b · How accurate is the AI? (measured, not claimed)</h2>
+<p>57 real items from the live pipeline were labelled by hand (is this really about that investor or their firm? is it about logistics?), then run through Gemini + our code checks (<code>tests/eval_judge.py</code>, labels in <code>data/eval_gold.json</code>).</p>
+<table class="mini"><tr><th>Question</th><th>Precision</th><th>Recall</th><th>Accuracy</th></tr>
+<tr><td>Is it really them / their firm?</td><td><b>100%</b> (no false claims)</td><td>89%</td><td>95%</td></tr>
+<tr><td>Is it about logistics? (on correct items)</td><td>100%</td><td>100%</td><td></td></tr></table>
+<p>Measured on the fallback model (gemini-3.5-flash-lite), i.e. the worst case. The design deliberately trades a little recall for precision: a missed signal costs Vikram little; a wrong one could embarrass him in front of an investor. The misses are headlines that don't name the investor, which our "evidence must name them" rule rejects on purpose.</p>
+
+<h2 id="security">7c · Reliability and security</h2>
+<ul>
+  <li><b>One run at a time</b>, enforced by a unique index in Postgres; the scheduled Monday/Thursday run always takes priority over a half-finished manual run.</li>
+  <li><b>Run tickets:</b> only the caller who started a run can continue it (HMAC token), so nobody can burn the AI quota through someone else's run.</li>
+  <li><b>Never "quiet" by accident:</b> if a news source or the AI fails for an investor, they keep last run's verdict and the run log records it. The run is marked "partial", never silently "done".</li>
+  <li><b>Time budget:</b> the cron run stops starting new work after 200 s (Vercel's limit is 300 s), so it always finishes cleanly.</li>
+  <li><b>Only real web links</b> (http/https) are stored or shown; a strict Content-Security-Policy blocks injected scripts; the editor key travels only in a header, never in a URL.</li>
+  <li><b>Cost guards:</b> a 10-minute cool-down on public refreshes, a 30-drafts-per-hour cap for visitors, and the AI health probe is editor-only.</li>
+</ul>
 
 <h2 id="flags">8 · Assumptions &amp; red flags (stated, not hidden)</h2>
 <ul>
   <li><b>Vikram is fictional</b>, so his company ("Haulr") and his contact notes are illustrative. The <b>50 investors, firms and theses are real</b> (verified against firm team pages, Oct 2026), and every signal is live public data.</li>
   <li><b>"Quiet" means quiet in public sources.</b> A VC can be busy privately; the system says "no public activity found", never "not investing".</li>
+  <li><b>Vikram's notes are visible in this public demo</b> (read-only) so reviewers can check they never change. In a real product they'd sit behind his login; editing already needs his private key.</li>
   <li><b>Same-name risk</b> (e.g. a common name): handled by Gemini's actor check plus visible rejected items; Vikram can always click the source.</li>
   <li><b>Free-tier limits</b>: if Gemini is busy, the run falls back to smaller Flash models; if all fail for a VC, that VC keeps its previous verdict and the run log counts it.</li>
   <li><b>Vercel Hobby cron</b> fires within the scheduled hour (07:00-07:59 IST), which is fine for "before he starts work".</li>

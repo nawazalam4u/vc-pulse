@@ -1,17 +1,55 @@
 {
   "cleanUrls": true,
   "functions": {
-    "api/run.py": { "maxDuration": 300 },
-    "api/cron.py": { "maxDuration": 300 },
-    "api/*.py": { "maxDuration": 60 }
+    "api/run.py": {
+      "maxDuration": 300
+    },
+    "api/cron.py": {
+      "maxDuration": 300
+    },
+    "api/pipeline.py": {
+      "maxDuration": 60
+    },
+    "api/vc.py": {
+      "maxDuration": 60
+    },
+    "api/proof.py": {
+      "maxDuration": 60
+    },
+    "api/draft.py": {
+      "maxDuration": 60
+    },
+    "api/health.py": {
+      "maxDuration": 60
+    }
   },
   "crons": [
-    { "path": "/api/cron", "schedule": "30 1 * * 1,4" }
+    {
+      "path": "/api/cron",
+      "schedule": "30 1 * * 1,4"
+    }
   ],
   "headers": [
-    { "source": "/(.*)", "headers": [
-      { "key": "X-Content-Type-Options", "value": "nosniff" },
-      { "key": "Referrer-Policy", "value": "strict-origin-when-cross-origin" }
-    ] }
+    {
+      "source": "/(.*)",
+      "headers": [
+        {
+          "key": "X-Content-Type-Options",
+          "value": "nosniff"
+        },
+        {
+          "key": "Referrer-Policy",
+          "value": "strict-origin-when-cross-origin"
+        },
+        {
+          "key": "Content-Security-Policy",
+          "value": "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; img-src 'self' data:; connect-src 'self'; frame-ancestors 'none'; base-uri 'self'"
+        },
+        {
+          "key": "X-Frame-Options",
+          "value": "DENY"
+        }
+      ]
+    }
   ]
 }

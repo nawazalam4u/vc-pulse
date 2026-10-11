@@ -78,3 +78,15 @@ create table if not exists vc_changes (
 -- added after first deploy (safe to re-run)
 alter table signals add column if not exists event text;
 alter table signals add column if not exists dup boolean default false;
+
+-- every Gemini email draft (audit trail + a simple hourly limit for anonymous visitors)
+create table if not exists drafts (
+  id         bigserial primary key,
+  vc_id      int references vcs(id) on delete cascade,
+  created_at timestamptz not null default now(),
+  model      text,
+  editor     boolean default false
+);
+
+-- at most one run at a time, enforced by the database (no race between "check" and "insert")
+create unique index if not exists one_running_run on runs ((status)) where status = 'running';

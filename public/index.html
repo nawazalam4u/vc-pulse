@@ -6,6 +6,12 @@
 <title>VC Pulse · Vikram's Seed pipeline</title>
 <meta name="description" content="Which VCs are worth reaching out to this week, and why. Live public signals from the last 30 days, judged by Gemini Flash.">
 <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><rect width='32' height='32' rx='9' fill='%236d4aff'/><path d='M4 17h6l3-8 5 15 3-7h7' fill='none' stroke='white' stroke-width='2.6' stroke-linecap='round' stroke-linejoin='round'/></svg>">
+<meta property="og:title" content="VC Pulse: who to pitch this week, and why">
+<meta property="og:description" content="Live public signals from the last 30 days, judged by Gemini Flash. Updates only 4 columns; your notes stay locked.">
+<meta property="og:image" content="https://vc-pulse-lime.vercel.app/og.png">
+<meta property="og:url" content="https://vc-pulse-lime.vercel.app/">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="theme-color" content="#0f0d2e">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Space+Grotesk:wght@500;700&display=swap">
 <link rel="stylesheet" href="/app.css">
@@ -48,7 +54,7 @@
     <div class="stat hot"><b id="sHot">–</b><span>🔥 Reach out this week</span></div>
     <div class="stat warm"><b id="sWarm">–</b><span>🌤 Warm, if you have time</span></div>
     <div class="stat wait"><b id="sWait">–</b><span>⏳ Ball in their court</span></div>
-    <div class="stat park"><b id="sPark">–</b><span>💤 Quiet: don't chase</span></div>
+    <div class="stat park"><b id="sPark">–</b><span>💤 Quiet or off-topic: don't chase</span></div>
     <div class="stat scan"><b id="sScan">–</b><span>📡 Public items checked</span></div>
     <div class="stat safe"><b id="sSafe">–</b><span>🔒 Your notes untouched</span></div>
   </div>
@@ -80,7 +86,15 @@
       <button class="fchip" data-f="PARK">💤 Quiet</button>
       <button class="btn line sm" id="csvOut">⬇ Export CSV</button>
       <label class="btn line sm" id="csvInLbl" hidden>⬆ Import CSV<input type="file" id="csvIn" accept=".csv" hidden></label>
+      <button class="btn ghost sm" id="addBtn" hidden>＋ Add investor</button>
     </div>
+    <form id="addForm" class="addform" hidden>
+      <input name="name" placeholder="Name *" required maxlength="80"><input name="firm" placeholder="Firm *" required maxlength="80">
+      <input name="thesis" placeholder="Thesis (what they invest in)" maxlength="200">
+      <select name="status"><option value="yet_to_reach_out">Yet to reach out</option><option value="waiting_response">Waiting for response</option></select>
+      <input name="last_contact_date" type="date" title="Last contact"><input name="notes" placeholder="Your notes" maxlength="500">
+      <button class="btn primary sm" type="submit">Add</button>
+    </form>
     <div class="tablebox"><table id="tbl"></table></div>
     <p class="meta" style="color:var(--ink2)" id="editHint"></p>
   </section>
@@ -112,9 +126,9 @@
 </div>
 
 <div class="scrim" id="scrim"></div>
-<aside class="drawer" id="drawer"></aside>
+<aside class="drawer" id="drawer" role="dialog" aria-modal="true" aria-label="Investor details"></aside>
 
-<div class="modal" id="runModal"><div class="mbox">
+<div class="modal" id="runModal" role="dialog" aria-modal="true" aria-labelledby="mTitle"><div class="mbox">
   <div class="mtop"><div class="radar" id="radar"></div><div style="flex:1">
     <h3 id="mTitle">Scanning your pipeline…</h3><div class="meta" id="mSub">Fetching news, deals, blogs and podcasts for each investor; Gemini Flash judges every item.</div>
     <div class="prog"><i id="mBar"></i></div></div></div>
@@ -122,7 +136,7 @@
   <div class="mfoot"><span class="meta" style="color:var(--ink2)" id="mFoot">Your notes are protected: the engine's login can only write 4 columns.</span>
     <button class="btn line sm" id="mClose" style="margin-left:auto" hidden>Close</button></div>
 </div></div>
-<div class="toast" id="toast"></div>
+<div class="toast" id="toast" role="status" aria-live="polite"></div>
 <script src="/app.js"></script>
 </body>
 </html>

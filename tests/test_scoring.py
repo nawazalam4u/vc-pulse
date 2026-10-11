@@ -29,7 +29,7 @@ check("fresh logistics deal + logistics thesis + not contacted -> REACH OUT", a.
 t, a = act(LOGI, [])
 check("no signal -> PARK, and mentions strong thesis fit", a.startswith("PARK") and "thesis fit" in a)
 t, a = act(dict(LOGI, status="waiting_response", last_contact_date="2026-10-08"), [sig("invested", 3, 1)])
-check("followed up 3 days ago -> WAIT even with a hot signal", a.startswith("WAIT") and "Save this hook" in a)
+check("followed up 3 days ago -> WAIT even with a hot signal", a.startswith("WAIT") and "Hook ready" in a)
 t, a = act(dict(LOGI, status="waiting_response", last_contact_date="2026-09-01"), [sig("wrote", 3, 3)])
 check("waiting 40 days + fresh on-topic post -> NUDGE", a.startswith("NUDGE"))
 t, a = act(GEN, [sig("mentioned", 1, 20, "firm")])
@@ -56,6 +56,16 @@ check("person news must name them", not e.names_them(V, {"origin": "news", "titl
       and e.names_them(V, {"origin": "news", "title": "Rahul Chowdhri on B2B SaaS"}, "said"))
 check("firm aliases parse brackets", e.firm_aliases("Andreessen Horowitz (a16z)") == ["andreessen horowitz", "a16z"]
       and e.firm_aliases("Z47 (formerly Matrix Partners India)") == ["z47"])
+
+t, a = act(dict(LOGI, status="waiting_response", last_contact_date="2026-10-02"), [sig("invested", 3, 1)] * 3)
+check("followed up 9 days ago + hot signal -> WAIT (no 'nudge this week' contradiction)", a.startswith("WAIT"))
+t, a = act(dict(LOGI, status="waiting_response", last_contact_date="2026-10-20"), [])
+check("future last-contact date is treated as today, never 'followed up -9 days ago'", "-" not in a.split("·")[1][:40])
+B = {"name": "Sajith Pai", "firm": "Blume Ventures"}
+check("'quick delivery' deal not naming the firm -> not a logistics signal",
+      not e.names_them(B, {"origin": "firm_news", "title": "Zepto raises $450M to speed up quick delivery"}, "invested"))
+check("quiet + waiting 60 days -> PARK says don't chase / move on",
+      "move on" in act(dict(GEN, status="waiting_response", last_contact_date="2026-08-12"), [])[1])
 
 for n, ok in checks:
     print("PASS" if ok else "FAIL", "-", n)

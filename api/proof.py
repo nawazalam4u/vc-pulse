@@ -39,7 +39,11 @@ class handler(BaseHTTPRequestHandler):
         _http.send(self, {"engine_can_update": eng, "founder_can_update": fou})
 
     def do_POST(self):
-        vid = int(_http.body(self).get("id") or 0)
+        b = _http.body(self)
+        try:
+            vid = int((b if isinstance(b, dict) else {}).get("id") or 0)
+        except (TypeError, ValueError):
+            vid = 0
         try:
             before = _db.q(_engine.FINGERPRINT)[0]
             vc = _db.q("select id, name, notes, follow_up_score from vcs where id = $1", [vid]) or \

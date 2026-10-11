@@ -18,7 +18,8 @@ class handler(BaseHTTPRequestHandler):
             return _http.send(self, {"error": "only Vercel Cron may call this"}, 401)
         try:
             res = _engine.run_all("cron")
-            res["telegram"] = _notify.send_brief(res.get("run_id"))
+            done = (res.get("run") or {}).get("status") == "done"
+            res["telegram"] = _notify.send_brief(res.get("run_id")) if done else "skipped (run not complete)"
             res.pop("report", None)
             _http.send(self, res)
         except Exception as e:

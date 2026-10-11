@@ -18,6 +18,7 @@ import json
 class handler(BaseHTTPRequestHandler):
     def do_POST(self):
         b = _http.body(self)
+        b = b if isinstance(b, dict) else {}
         act = b.get("action")
         try:
             if act == "start":
@@ -30,13 +31,19 @@ class handler(BaseHTTPRequestHandler):
                 rid, fresh = _engine.start_run("manual")
                 ids = [r["id"] for r in _db.q("select id from vcs order by id")] if fresh else []
                 names = {r["id"]: r["name"] for r in _db.q("select id, name from vcs")}
-                return _http.send(self, {"run": rid, "fresh": fresh, "ids": ids, "names": names})
-            rid = int(b.get("run") or 0)
+                return _http.send(self, {"run": rid, "fresh": fresh, "ids": ids, "names": names,
+                                         "token": _engine.run_token(rid) if fresh else None})
+            try:
+                rid = int(b.get("run") or 0)
+            except (TypeError, ValueError):
+                rid = 0
+            if not _engine.check_token(rid, b.get("token")):
+                return _http.send(self, {"error": "this run belongs to someone else"}, 403)
             run = _db.q("select id, status from runs where id = $1", [rid])
             if not run or run[0]["status"] != "running":
-                return _http.send(self, {"error": "run is not active"}, 409)
+                return _http.send(self, {"error": "This run was stopped (the scheduled run takes priority)."}, 409)
             if act == "batch":
-                ids = [int(x) for x in (b.get("ids") or [])][:10]
+                ids = [int(x) for x in (b.get("ids") or []) if str(x).isdigit()][:10]
                 rep = _engine.process(rid, ids, workers=10, judge_size=10)
                 _db.q("update runs set sources = coalesce(sources, '{}'::jsonb) || $2::jsonb where id = $1",
                       [rid, json.dumps({"models_used_batch_%d" % ids[0]: _gemini.USED})]) if ids else None

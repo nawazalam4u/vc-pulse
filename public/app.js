@@ -20,6 +20,7 @@ async function api(path, opts = {}) {
   if (!r.ok) throw Object.assign(new Error(data.error || "Request failed"), { status: r.status, data });
   return data;
 }
+const safeUrl = (u) => (/^https?:\/\//i.test(String(u || "")) ? esc(u) : "#");
 function toast(msg, ms = 3200) {
   const t = $("#toast"); t.textContent = msg; t.classList.add("on");
   clearTimeout(toast.t); toast.t = setTimeout(() => t.classList.remove("on"), ms);
@@ -68,6 +69,7 @@ function nextRun() {
 // ---------- state
 let S = { vcs: [], runs: [], changes: {}, can_edit: false };
 let filter = "all";
+const openLanes = new Set();
 
 async function load(flashIds = []) {
   try {
@@ -79,8 +81,9 @@ async function load(flashIds = []) {
   }
   $("#editPill").hidden = !S.can_edit;
   $("#csvInLbl").hidden = !S.can_edit;
+  $("#addBtn").hidden = !S.can_edit;
   $("#editHint").textContent = S.can_edit ? "Editor mode: click your blue cells to edit. Changes save to the database instantly through the founder login."
-    : "Read-only view. Vikram edits his blue columns through his private magic link.";
+    : "Public demo, read-only. Vikram's notes are illustrative and visible so reviewers can verify they never change; in production they sit behind his login. He edits them through his private link.";
   renderHeader(); renderBoard(); renderTable(flashIds); renderRuns(); renderGuardRuns();
 }
 
@@ -115,14 +118,14 @@ function renderBoard() {
   const sorted = [...S.vcs].sort((a, b) => (b.follow_up_score ?? -1) - (a.follow_up_score ?? -1));
   $("#board").innerHTML = LANES.map((L) => {
     const items = sorted.filter((v) => L.match(actTag(v.recommended_action)));
-    const show = L.id === "park" ? items.slice(0, 12) : items;
+    const show = openLanes.has(L.id) ? items : items.slice(0, 8);
     return `<div class="lane"><h3>${L.title}<small>${items.length}</small></h3><div class="sub">${L.sub}</div>
-      ${show.map((v) => `<div class="card ${L.id}" data-id="${v.id}">
+      ${show.map((v) => `<div class="card ${L.id}" data-id="${v.id}" tabindex="0" role="button" aria-label="${esc(v.name)}, ${esc(v.firm)}, score ${v.follow_up_score ?? "not scored"}">
         <div class="hd">${ring(v.follow_up_score)}<div style="min-width:0"><div class="nm">${esc(v.name)} ${deltaBadge(v)}</div><div class="fm">${esc(v.firm)}</div></div></div>
         <div class="act">${esc(actText(v.recommended_action))}</div>
         ${v.signals?.length ? `<div class="ev">${v.signals.slice(0, 3).map(sigChip).join("")}</div>` : ""}
       </div>`).join("") || `<div class="empty" style="padding:14px">Nobody here right now.</div>`}
-      ${items.length > show.length ? `<div class="more">+ ${items.length - show.length} more in the Pipeline table</div>` : ""}
+      ${items.length > 8 ? `<button class="more" data-lane="${L.id}">${openLanes.has(L.id) ? "Show fewer" : `Show all ${items.length}`}</button>` : ""}
     </div>`;
   }).join("");
 }
@@ -175,13 +178,14 @@ $$(".fchip").forEach((b) => b.addEventListener("click", () => { $$(".fchip").for
 // CSV export / import (Vikram's spreadsheet in and out)
 const CSV_COLS = ["name", "firm", "thesis", "region", "status", "last_contact_date", "contact_history", "notes", "feed_url", "last_signal_date", "signal_summary", "follow_up_score", "recommended_action"];
 $("#csvOut").addEventListener("click", () => {
-  const q = (x) => `"${String(x ?? "").replace(/"/g, '""')}"`;
+  const q = (x) => { let t = String(x ?? ""); if (/^[=+\-@]/.test(t)) t = "'" + t; return `"${t.replace(/"/g, '""')}"`; };  // no Excel formulas
   const csv = [CSV_COLS.join(","), ...S.vcs.map((v) => CSV_COLS.map((c) => q(v[c])).join(","))].join("\n");
   const a = document.createElement("a");
   a.href = URL.createObjectURL(new Blob([csv], { type: "text/csv" }));
   a.download = "vc-pipeline-" + new Date().toISOString().slice(0, 10) + ".csv"; a.click();
 });
 function parseCsv(text) {
+  text = text.replace(/^\uFEFF/, "");  // Excel adds an invisible marker at the start
   const rows = []; let row = [], cell = "", q = false;
   for (let i = 0; i < text.length; i++) {
     const ch = text[i];
@@ -204,13 +208,27 @@ $("#csvIn").addEventListener("change", async (e) => {
   e.target.value = "";
 });
 
+$("#addBtn").addEventListener("click", () => { const f = $("#addForm"); f.hidden = !f.hidden; });
+$("#addForm").addEventListener("submit", async (e) => {
+  e.preventDefault();
+  const row = Object.fromEntries(new FormData(e.target).entries());
+  try {
+    const r = await api("/api/vc", { method: "POST", body: JSON.stringify({ rows: [row] }) });
+    toast(r.added ? `Added ${row.name}. They'll be scanned in the next run.` : "Already on your list.");
+    e.target.reset(); e.target.hidden = true; load();
+  } catch (err) { toast("Not added: " + err.message); }
+});
+
 // ---------- drawer: one investor
+let openSeq = 0;
 async function openVc(id) {
+  const seq = ++openSeq;
   const dr = $("#drawer");
   $("#scrim").classList.add("on"); dr.classList.add("on");
-  dr.innerHTML = `<div class="dh"><h2>Loading…</h2><button class="x" onclick="closeVc()">×</button></div><div class="db"><div class="skel"></div><div class="skel"></div></div>`;
+  dr.innerHTML = `<div class="dh"><h2>Loading…</h2><button class="x" data-close aria-label="Close">×</button></div><div class="db"><div class="skel"></div><div class="skel"></div></div>`;
   let d;
-  try { d = await api("/api/vc?id=" + id); } catch (e) { dr.innerHTML = `<div class="db">${esc(e.message)}</div>`; return; }
+  try { d = await api("/api/vc?id=" + id); } catch (e) { if (seq === openSeq) dr.innerHTML = `<div class="db">${esc(e.message)}</div>`; return; }
+  if (seq !== openSeq) return;  // a newer click won
   const v = d.vc, kept = d.signals.filter((s) => s.about_vc && !s.dup && +s.points >= 4), rej = d.signals.filter((s) => !(s.about_vc && +s.points >= 4));
   const also = d.signals.filter((s) => s.about_vc && s.dup);
   const fresh = kept.filter((s) => daysSince(s.published) <= 30);
@@ -220,7 +238,7 @@ async function openVc(id) {
     const w = 540, h = 46, pts = hist.map((x, i) => [10 + (i * (w - 20)) / (hist.length - 1), h - 6 - ((x.new_score ?? 0) / 100) * (h - 12)]);
     return `<svg class="spark" viewBox="0 0 ${w} ${h}"><polyline fill="none" stroke="#6d4aff" stroke-width="2.5" points="${pts.map((p) => p.join(",")).join(" ")}"/>${pts.map((p) => `<circle cx="${p[0]}" cy="${p[1]}" r="3.5" fill="#6d4aff"/>`).join("")}</svg>`;
   })() : `<p class="meta" style="color:var(--ink2);margin:0">History builds up with every run (twice a week).</p>`;
-  dr.innerHTML = `<div class="dh">${ring(v.follow_up_score)}<div><h2>${esc(v.name)}</h2><div class="fm" style="color:var(--ink2)">${esc(v.firm)} · ${esc(v.region || "")}</div></div><button class="x" onclick="closeVc()">×</button></div>
+  dr.innerHTML = `<div class="dh">${ring(v.follow_up_score)}<div><h2>${esc(v.name)}</h2><div class="fm" style="color:var(--ink2)">${esc(v.firm)} · ${esc(v.region || "")}</div></div><button class="x" data-close aria-label="Close">×</button></div>
   <div class="db">
     <div class="box"><h4><span class="tag ${esc(actTag(v.recommended_action).split(" ")[0])}">${esc(actTag(v.recommended_action))}</span> Recommended action</h4>
       <div style="font-size:15px">${esc(actText(v.recommended_action))}</div>
@@ -228,13 +246,14 @@ async function openVc(id) {
       <div id="draftOut"></div></div>
     <div class="box"><h4>⚡ Signal summary</h4><div>${esc(v.signal_summary || "–")}</div></div>
     <div class="box"><h4>🧮 Why ${v.follow_up_score ?? "–"}/100: the score maths</h4>
+      ${d.score_now !== v.follow_up_score ? `<p class="meta" style="color:var(--ink2);margin:0 0 6px">Recomputed with today's date and your current status: <b>${d.score_now}</b>. The table updates on the next run.</p>` : ""}
       ${d.breakdown.map(([label, pts]) => `<div class="bar"><div class="t">${esc(label)}<div class="fill ${pts < 0 ? "neg" : ""}" style="width:${(Math.abs(pts) / max) * 100}%"></div></div><b>${pts > 0 ? "+" : ""}${pts}</b></div>`).join("")}
-      <details style="margin-top:8px"><summary>How each signal is worth points</summary><p style="font-size:12.5px;color:var(--ink2)">points = type weight (invested 40, wrote 34, spoke 30, event 26, in news 14) × topic fit (logistics 1.0, adjacent B2B 0.6, general 0.3) × who acted (the partner 1.0, only their firm 0.85) × freshness (full for 7 days, fading to 0.4 at day 30). Best signal + 40% of the 2nd + 20% of the 3rd, capped at 70. Then thesis fit (up to +15) and timing from <i>your</i> status and last-contact date (−30 to +10). Gemini judges what each item is; plain code does the arithmetic, so the same evidence always gives the same score.</p></details></div>
+      <details style="margin-top:8px"><summary>How each signal is worth points</summary><p style="font-size:12.5px;color:var(--ink2)">points = type weight (invested 40, wrote 34, spoke 30, event 26, in news 14) × topic fit (logistics 1.0, adjacent B2B 0.6, general 0.3) × who acted (the partner 1.0, only their firm 0.85) × freshness (full for 7 days, fading to 0.4 at day 30). Best signal + 40% of the 2nd + 20% of the 3rd, capped at 70. Then thesis fit (up to +15) and timing from <i>your</i> status and last-contact date (−30 to +10; followed up under 14 days ago = WAIT). Gemini judges what each item is; plain code does the arithmetic, so the same evidence always gives the same score.</p></details></div>
     <div class="box"><h4>🔎 Evidence (last 30 days): ${fresh.length} signal${fresh.length === 1 ? "" : "s"}</h4>
-      ${fresh.length ? fresh.map((s) => `<div class="evi"><div class="d">${fmtDate(s.published)}<br><span class="chip ${esc(s.kind)}" style="margin-top:4px">${KIND[s.kind] || ""}</span></div><div><a class="t" href="${esc(s.url)}" target="_blank" rel="noopener">${esc(s.title)} ↗</a><div class="s">${esc(s.summary || "")}</div><div class="s">${esc(s.source)} · via ${ORIGIN[s.origin] || s.origin} · fit ${s.relevance}/3 · ${(+s.points).toFixed(1)} pts</div></div></div>`).join("")
+      ${fresh.length ? fresh.map((s) => `<div class="evi"><div class="d">${fmtDate(s.published)}<br><span class="chip ${esc(s.kind)}" style="margin-top:4px">${KIND[s.kind] || ""}</span></div><div><a class="t" href="${safeUrl(s.url)}" target="_blank" rel="noopener">${esc(s.title)} ↗</a><div class="s">${esc(s.summary || "")}</div><div class="s">${esc(s.source)} · via ${ORIGIN[s.origin] || s.origin} · fit ${s.relevance}/3 · ${(+s.points).toFixed(1)} pts</div></div></div>`).join("")
         : `<p style="margin:0;color:var(--ink2)">No qualifying public activity in the last 30 days. That's useful too: don't spend energy here this week.</p>`}
-      ${also.length ? `<details style="margin-top:8px"><summary>Same events, other outlets: ${also.length} (counted once)</summary>${also.slice(0, 20).map((s) => `<div class="evi rej"><div class="d">${fmtDate(s.published)}</div><div><a href="${esc(s.url)}" target="_blank" rel="noopener">${esc(s.title)}</a><div class="s">${esc(s.source)}</div></div></div>`).join("")}</details>` : ""}
-      ${rej.length ? `<details style="margin-top:8px"><summary>Filtered out by Gemini: ${rej.length} item${rej.length === 1 ? "" : "s"} (not about them, or not relevant)</summary>${rej.slice(0, 25).map((s) => `<div class="evi rej"><div class="d">${fmtDate(s.published)}</div><div><a href="${esc(s.url)}" target="_blank" rel="noopener">${esc(s.title)}</a><div class="s">${esc(s.source)} · via ${ORIGIN[s.origin] || s.origin}</div></div></div>`).join("")}</details>` : ""}
+      ${also.length ? `<details style="margin-top:8px"><summary>Same events, other outlets: ${also.length} (counted once)</summary>${also.slice(0, 20).map((s) => `<div class="evi rej"><div class="d">${fmtDate(s.published)}</div><div><a href="${safeUrl(s.url)}" target="_blank" rel="noopener">${esc(s.title)}</a><div class="s">${esc(s.source)}</div></div></div>`).join("")}</details>` : ""}
+      ${rej.length ? `<details style="margin-top:8px"><summary>Filtered out: ${rej.length} item${rej.length === 1 ? "" : "s"} (Gemini or our checks: not clearly about them, or not relevant)</summary>${rej.slice(0, 25).map((s) => `<div class="evi rej"><div class="d">${fmtDate(s.published)}</div><div><a href="${safeUrl(s.url)}" target="_blank" rel="noopener">${esc(s.title)}</a><div class="s">${esc(s.source)} · via ${ORIGIN[s.origin] || s.origin}</div></div></div>`).join("")}</details>` : ""}
     </div>
     <div class="box"><h4>🔒 Your columns (never touched by the engine)</h4><div class="kv">
       <span>Status</span><div>${v.status === "waiting_response" ? "⏳ Waiting for response" : "✉️ Yet to reach out"}</div>
@@ -242,10 +261,11 @@ async function openVc(id) {
       <span>Contact history</span><div>${esc(v.contact_history || "–")}</div>
       <span>Your notes</span><div>${esc(v.notes || "–")}</div>
       <span>Thesis</span><div>${esc(v.thesis || "–")}</div>
-      ${v.feed_url ? `<span>Blog feed</span><div><a href="${esc(v.feed_url)}" target="_blank" rel="noopener">${esc(v.feed_url)}</a></div>` : ""}
+      ${v.feed_url ? `<span>Blog feed</span><div><a href="${safeUrl(v.feed_url)}" target="_blank" rel="noopener">${esc(v.feed_url)}</a></div>` : ""}
     </div></div>
     <div class="box"><h4>📈 Score across runs</h4>${spark}</div>
   </div>`;
+  $("#drawer .x")?.focus();
   const db = $("#draftBtn");
   if (db) db.addEventListener("click", async () => {
     db.disabled = true; db.textContent = "Gemini is writing…";
@@ -259,16 +279,28 @@ async function openVc(id) {
 }
 function closeVc() { $("#scrim").classList.remove("on"); $("#drawer").classList.remove("on"); }
 $("#scrim").addEventListener("click", closeVc);
+$("#drawer").addEventListener("click", (e) => { if (e.target.closest("[data-close]")) closeVc(); });
 document.addEventListener("keydown", (e) => { if (e.key === "Escape") closeVc(); });
-$("#board").addEventListener("click", (e) => { const c = e.target.closest(".card"); if (c) openVc(+c.dataset.id); });
+$("#board").addEventListener("click", (e) => {
+  const m = e.target.closest(".more[data-lane]");
+  if (m) { openLanes.has(m.dataset.lane) ? openLanes.delete(m.dataset.lane) : openLanes.add(m.dataset.lane); renderBoard(); return; }
+  const c = e.target.closest(".card"); if (c) openVc(+c.dataset.id);
+});
+$("#board").addEventListener("keydown", (e) => { const c = e.target.closest(".card"); if (c && (e.key === "Enter" || e.key === " ")) { e.preventDefault(); openVc(+c.dataset.id); } });
 
 // ---------- runs
+function modelsOf(r) {
+  const m = {}; const src = r.sources || {};
+  Object.keys(src).filter((k) => k.startsWith("models_used")).forEach((k) => Object.entries(src[k] || {}).forEach(([n, c]) => { m[n] = (m[n] || 0) + c; }));
+  if (!Object.keys(m).length && src.model) m[src.model] = 1;
+  return Object.keys(m).join(", ") || "–";
+}
 function renderRuns() {
   $("#runs").innerHTML = S.runs.map((r) => {
     const dur = r.finished_at ? Math.round((new Date(r.finished_at) - new Date(r.started_at)) / 1000) + "s" : "";
     const safe = r.notes_hash_after ? (r.notes_hash_before === r.notes_hash_after ? `<span class="pill" style="background:var(--ok2);color:var(--ok)">🔒 notes untouched</span>` : `<span class="pill" style="background:var(--warm2);color:#9a6700">notes edited during run</span>`) : `<span class="pill" style="background:var(--park2)">${esc(r.status)}</span>`;
     return `<div class="run"><div><b>Run #${r.id}</b><span>${new Date(r.started_at).toLocaleString("en-IN", { weekday: "short", day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" })} · ${r.trigger === "cron" ? "⏰ auto" : "👆 manual"} ${dur}</span></div>
-      <div><b>${r.vcs_done}/${r.vcs_total}</b><span>investors</span></div><div><b>${r.items_scanned}</b><span>items checked</span></div>
+      <div><b>${r.vcs_done}/${r.vcs_total}</b><span>investors · AI: ${esc(modelsOf(r))}</span></div><div><b>${r.items_scanned}</b><span>items checked</span></div>
       <div><b>${r.signals_kept}</b><span>signals kept</span></div><div><b style="color:var(--hot)">${r.hot_count}</b><span>reach out</span></div>
       <div><b style="color:var(--park)">${r.quiet_count}</b><span>quiet</span></div><div>${safe}</div></div>`;
   }).join("") || `<div class="empty">No runs yet.</div>`;
@@ -331,16 +363,19 @@ async function runNow() {
       line(`<span>📡 Scanning ${b.map((i) => esc(start.names[i])).join(", ")}</span><small>…</small>`);
       for (let attempt = 0; attempt < 2; attempt++) {
         try {
-          const r = await api("/api/run", { method: "POST", body: JSON.stringify({ action: "batch", run: start.run, ids: b }) });
+          const r = await api("/api/run", { method: "POST", body: JSON.stringify({ action: "batch", run: start.run, token: start.token, ids: b }) });
           r.report.forEach((x) => {
             touched.push(x.id);
-            if (x.skipped) { line(`<span>${esc(x.name)}: AI busy, kept last verdict</span><small>skipped</small>`); return; }
+            if (x.skipped) { line(`<span>${esc(x.name)}: a source or the AI was unavailable, so the last verdict is kept</span><small>skipped</small>`); return; }
             scanned += x.scanned; kept += x.kept; if (["REACH OUT", "NUDGE"].includes(x.action)) hot++;
             const d = x.old == null ? "" : x.score > x.old ? ` ▲${x.score - x.old}` : x.score < x.old ? ` ▼${x.old - x.score}` : "";
             line(`<span><b>${esc(x.name)}</b> <small>${esc(x.firm)} · ${x.scanned} items → ${x.kept} signal${x.kept === 1 ? "" : "s"}</small></span><span><span class="tag ${esc(x.action.split(" ")[0])}">${esc(x.action)}</span> <b>${x.score}</b><small>${d}</small></span>`);
           });
           break;
-        } catch (e) { if (attempt) line(`<span style="color:var(--bad)">Batch failed: ${esc(e.message)}</span>`); }
+        } catch (e) {
+          if (e.status === 409) { batches.length = 0; line(`<span style="color:var(--bad)">${esc(e.message)}</span>`); break; }
+          if (attempt) line(`<span style="color:var(--bad)">Batch failed: ${esc(e.message)}. These investors keep their last verdict.</span>`);
+        }
       }
       done += b.length;
       $("#mBar").style.width = (done / ids.length) * 100 + "%";
@@ -349,9 +384,9 @@ async function runNow() {
   };
   await Promise.all([worker(), worker(), worker()]);  // 5 batches of 10, 3 at a time
   try {
-    const f = await api("/api/run", { method: "POST", body: JSON.stringify({ action: "finish", run: start.run }) });
+    const f = await api("/api/run", { method: "POST", body: JSON.stringify({ action: "finish", run: start.run, token: start.token }) });
     const safe = f.run.notes_hash_before === f.run.notes_hash_after;
-    $("#mTitle").textContent = `Done: ${f.run.hot_count} to reach out this week`;
+    $("#mTitle").textContent = (f.run.status === "partial" ? "Partly done: " : "Done: ") + `${f.run.hot_count} to reach out this week`;
     $("#mSub").textContent = `${scanned} public items checked · ${kept} kept as signals · ${f.run.quiet_count} quiet`;
     $("#mFoot").innerHTML = safe ? "🔒 Notes fingerprint before = after: none of your columns changed." : "Your columns changed during the run (you edited something), which is fine.";
   } catch (e) { line(`<span style="color:var(--bad)">${esc(e.message)}</span>`); }

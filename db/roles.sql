@@ -14,3 +14,6 @@ grant usage on sequence vcs_id_seq to pulse_founder;
 grant select, insert, update, delete on signals, runs, vc_changes to pulse_engine;
 grant usage on sequence signals_id_seq, runs_id_seq to pulse_engine;
 grant select on signals, runs, vc_changes to pulse_founder;
+
+grant select, insert on drafts to pulse_engine;
+grant usage on sequence drafts_id_seq to pulse_engine;

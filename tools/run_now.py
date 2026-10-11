@@ -23,8 +23,9 @@ s = post({"action": "start"})
 ids = s["ids"]
 print("run", s["run"], "investors", len(ids))
 with ThreadPoolExecutor(3) as ex:
-    list(ex.map(lambda b: post({"action": "batch", "run": s["run"], "ids": b}), [ids[i:i + 10] for i in range(0, len(ids), 10)]))
-f = post({"action": "finish", "run": s["run"]})["run"]
+    list(ex.map(lambda b: post({"action": "batch", "run": s["run"], "token": s["token"], "ids": b}),
+                [ids[i:i + 10] for i in range(0, len(ids), 10)]))
+f = post({"action": "finish", "run": s["run"], "token": s["token"]})["run"]
 print("%ds | done %s | items %s | signals %s | reach out %s | quiet %s | errors %s | notes untouched: %s | %s" % (
     time.time() - t, f["vcs_done"], f["items_scanned"], f["signals_kept"], f["hot_count"], f["quiet_count"], f["errors"],
     f["notes_hash_before"] == f["notes_hash_after"], (f.get("sources") or {}).get("models_used")))

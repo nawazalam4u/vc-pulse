@@ -33,7 +33,7 @@ def cutoff():
 def _get(url, timeout=12):
     req = urllib.request.Request(url, headers={"User-Agent": UA, "Accept": "*/*"})
     with urllib.request.urlopen(req, timeout=timeout) as r:
-        return r.read()
+        return r.read(3_000_000)  # cap: a feed is never bigger than a few MB
 
 
 def _date(s):
@@ -61,6 +61,12 @@ def _fresh(d):
     return d is not None and cutoff() <= d <= today() + dt.timedelta(days=1)
 
 
+def safe_url(u):
+    """Only real web links ever reach the database or the page (blocks javascript: and other tricks)."""
+    u = (u or "").strip()
+    return u if re.match(r"^https?://[^\s<>\"']+$", u, re.I) else ""
+
+
 def _local(n):
     return n.split("}")[-1]
 
@@ -73,7 +79,7 @@ def _feed_items(xml_bytes):
         tag = _local(el.tag)
         if tag not in ("item", "entry"):
             continue
-        f = {"title": "", "url": "", "date": None, "snippet": "", "source": ""}
+        f = {"title": "", "url": "", "date": None, "snippet": "", "source": "", "author": ""}
         for c in el:
             t = _local(c.tag)
             if t == "title":
@@ -86,7 +92,10 @@ def _feed_items(xml_bytes):
                 f["snippet"] = _clean(c.text)
             elif t == "source":
                 f["source"] = _clean(c.text, 80)
-        if f["title"] and f["url"]:
+            elif t in ("creator", "author") and not f["author"]:
+                name = c.text if (c.text or "").strip() else " ".join((x.text or "") for x in c if _local(x.tag) == "name")
+                f["author"] = _clean(name, 80)
+        if f["title"] and safe_url(f["url"]):
             out.append(f)
     return out
 
@@ -113,20 +122,23 @@ def blog(feed_url):
         if _fresh(f["date"]):
             host = urllib.parse.urlparse(f["url"]).hostname or "blog"
             out.append({"title": f["title"], "url": f["url"], "published": f["date"],
-                        "source": host.replace("www.", ""), "snippet": f["snippet"][:300]})
+                        "source": host.replace("www.", ""), "snippet": f["snippet"][:300], "author": f["author"]})
     return out[:6]
 
 
 def podcasts(name):
     d = json.loads(_get("https://itunes.apple.com/search?" + urllib.parse.urlencode(
-        {"term": name, "entity": "podcastEpisode", "limit": 50})))
-    last = name.split()[-1].lower()
+        {"term": '"%s"' % name, "entity": "podcastEpisode", "limit": 50})))
+    full = name.lower()
     out = []
     for r in d.get("results", []):
         when = _date(r.get("releaseDate"))
         text = (r.get("trackName", "") + " " + r.get("description", "")).lower()
-        if _fresh(when) and last in text:
-            out.append({"title": r.get("trackName", "")[:200], "url": r.get("trackViewUrl") or r.get("episodeUrl", ""),
+        if _fresh(when) and full in text:  # full name, so common surnames (Reddy, Pai...) don't match strangers
+            url = safe_url(r.get("trackViewUrl") or r.get("episodeUrl", ""))
+            if not url:
+                continue
+            out.append({"title": r.get("trackName", "")[:200], "url": url,
                         "published": when, "source": r.get("collectionName", "Podcast")[:80],
                         "snippet": _clean(r.get("description", ""), 300)})
     return out[:5]
@@ -161,11 +173,22 @@ def web_search(vc, gemini):
         return []
     out = []
     for r in rows if isinstance(rows, list) else []:
-        d, url = _date(str(r.get("date", ""))), str(r.get("url", ""))
+        d, url = _date(str(r.get("date", ""))), safe_url(str(r.get("url", "")))
         host = (urllib.parse.urlparse(url).hostname or "").replace("www.", "").lower()
-        if _fresh(d) and host and any(host.endswith(x) or x.endswith(host) for x in domains if x):
+        named = vc["name"].split()[-1].lower() in str(r.get("title", "")).lower()
+        if _fresh(d) and host and named and any(host.endswith(x) or x.endswith(host) for x in domains if x):
             out.append({"title": str(r.get("title", ""))[:200], "url": url, "published": d, "source": host, "snippet": ""})
     return out[:5]
+
+
+def last_mention(vc):
+    """For investors with nothing in 30 days: when did the news last mention them WITH their firm (up to a year)?
+    Searching name + firm together avoids namesakes. Returns a date or None. Context only, never scored."""
+    firm = re.sub(r"\s*\(.*\)", "", vc["firm"]).strip()
+    params = {"q": '"%s" "%s" when:1y' % (vc["name"], short_firm(firm)), "hl": "en-US", "gl": "US", "ceid": "US:en"}
+    dates = [f["date"] for f in _feed_items(_get("https://news.google.com/rss/search?" + urllib.parse.urlencode(params)))
+             if f["date"] and f["date"] <= today()]
+    return max(dates) if dates else None
 
 
 def short_firm(firm):
@@ -195,5 +218,16 @@ def gather(vc, gemini=None):
             seen.update((it["url"], key))
             it["origin"] = origin
             items.append(it)
+    caps = {"news": 7, "firm_news": 7, "blog": 5, "podcast": 3, "search": 4}
     items.sort(key=lambda x: x["published"], reverse=True)
-    return items[:18], tally
+    out, per = [], {}
+    for it in items:  # newest first, but every source keeps its share (a strong older deal isn't crowded out)
+        per[it["origin"]] = per.get(it["origin"], 0) + 1
+        if per[it["origin"]] <= caps.get(it["origin"], 5):
+            out.append(it)
+    return out, tally
+
+
+def news_failed(tally):
+    """True when a news search failed: then 'no signal' could be a lie, so the engine keeps the last verdict."""
+    return any(str(tally.get(k, "")).startswith("error") for k in ("news", "firm_news"))
