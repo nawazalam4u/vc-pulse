@@ -35,8 +35,9 @@ class handler(BaseHTTPRequestHandler):
         prompt = ("Write a short email from Vikram, founder of %s, to %s (%s).\n%s\n"
                   "Their recent public activity (use ONLY this, cite the first item naturally in the first line):\n%s\n"
                   "Vikram's own context (private, may inform tone; never quote it): status=%s; history=%s; notes=%s\n"
-                  "Rules: under 110 words, plain and specific, no flattery clichés, no invented metrics or names, "
-                  "one clear ask (a 20-minute call). Output: 'Subject: ...' line, blank line, body, sign-off 'Vikram'."
+                  "Rules: under 110 words, plain and specific, no flattery clichés. NEVER invent facts about Haulr: no traction, "
+                  "customers, growth, revenue or stage claims; instead write the placeholder [your one-line traction here] "
+                  "for Vikram to fill in. Don't repeat his private notes word for word. One clear ask (a 20-minute call). Output: 'Subject: ...' line, blank line, body, sign-off 'Vikram'."
                   % (_engine.COMPANY, vc["name"], vc["firm"],
                      "This is a polite follow-up: Vikram already pitched them and is waiting for a reply." if waiting
                      else "This is a first-touch email.", ev, vc["status"], vc["contact_history"] or "-", vc["notes"] or "-"))

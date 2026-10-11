@@ -16,7 +16,7 @@ def brief_text():
     hot = _db.q("select name, firm, follow_up_score, recommended_action from vcs where recommended_action like 'REACH OUT%' "
                 "or recommended_action like 'NUDGE%' order by follow_up_score desc limit 8")
     warm = _db.q("select count(*) as n from vcs where recommended_action like 'WARM%'")[0]["n"]
-    quiet = _db.q("select count(*) as n from vcs where recommended_action like 'PARK%'")[0]["n"]
+    quiet = _db.q("select count(*) as n from vcs where recommended_action like 'PARK%' or recommended_action like 'LOW%'")[0]["n"]
     lines = ["VC Pulse - your pipeline is up to date", ""]
     if hot:
         lines.append("Worth reaching out this week:")
