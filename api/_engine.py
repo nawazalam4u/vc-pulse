@@ -72,7 +72,7 @@ summary: <= 18 words, plain fact, e.g. "Led Rs 40 Cr Series A in FreightTiger, a
 overall: <= 35 words: what this investor has been doing in the last 30 days that matters for the founder, citing
         dates like "8 Oct". Only use items with actor person/firm. If nothing qualifies, return "".
 hook:   <= 22 words, written to THIS investor about THEIR OWN act (an item with actor person/firm): the specific,
-        honest opening line for the founder's email, e.g. "Saw Peak XV raise Surge checks to $5M on 29 Sep...".
+        honest opening line for the founder's email, e.g. "Saw Peak XV raise Surge checks to $5M on 29 Sep."
         Never mention other people. Return "" if nothing qualifies.""" % COMPANY
 
 
@@ -317,7 +317,8 @@ def process(run_id, vc_ids, workers=8, judge_size=10):
             last_any = max(last_any, newest) if last_any else newest
 
         total, breakdown, strength, days = score(vc, [k for k in kept if not k["dup"]], today)
-        hook = (v or {}).get("hook", "") if kept else ""
+        hook = ((v or {}).get("hook", "") if kept else "").strip().rstrip(".… ")
+        hook = hook + "." if hook else ""
         action = action_for(vc, total, strength, days, hook, kept[0] if kept else None, today, last_any)
         if kept:
             summary = (v or {}).get("overall") or "; ".join(
