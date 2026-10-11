@@ -67,6 +67,14 @@ check("'quick delivery' deal not naming the firm -> not a logistics signal",
 check("quiet + waiting 60 days -> PARK says don't chase / move on",
       "move on" in act(dict(GEN, status="waiting_response", last_contact_date="2026-08-12"), [])[1])
 
+H = e.fallback_hook({"firm": "Andreessen Horowitz (a16z)"}, [
+    {"actor": "firm", "points": 20, "kind": "wrote", "title": "Investing in TypeSafe AI", "published": T},
+    {"actor": "person", "points": 5, "kind": "wrote", "title": "My own post", "published": T}])
+check("fallback hook prefers the partner's own act and only says 'your' for it", H.startswith('Saw your post "My own post"'))
+check("fallback hook for a firm act names the firm, not 'your'",
+      e.fallback_hook({"firm": "Point Nine"}, [{"actor": "firm", "points": 9, "kind": "invested", "title": "Procuros raises EUR 20M",
+                                                "published": T}]).startswith("Saw Point Nine's deal coverage"))
+
 for n, ok in checks:
     print("PASS" if ok else "FAIL", "-", n)
 print("%d/%d passed" % (sum(ok for _, ok in checks), len(checks)))

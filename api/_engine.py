@@ -75,7 +75,9 @@ event:  short kebab-case id of the real-world event behind the item, identical f
         event, e.g. "8vc-gallatin-series-a", "anandan-liftoff-nation-book", "tunguz-post-ai-commoditization".
 summary: <= 18 words, plain fact, e.g. "Led Rs 40 Cr Series A in FreightTiger, a trucking SaaS".
 overall: <= 35 words: what this investor has been doing in the last 30 days that matters for the founder, citing
-        dates like "8 Oct". Only use items with actor person/firm. If nothing qualifies, return "".
+        dates like "8 Oct". Only use items with actor person/firm. Credit the PERSON only for what they did themselves
+        (e.g. a blog post whose author is someone else is "a16z published ...", not "Seema wrote ...").
+        If nothing qualifies, return "".
 hook:   <= 22 words, written to THIS investor about THEIR OWN act (an item with actor person/firm): the specific,
         honest opening line for the founder's email, e.g. "Saw Peak XV raise Surge checks to $5M on 29 Sep."
         Never mention other people. Return "" if nothing qualifies.
@@ -128,6 +130,16 @@ def judge(batch):
         except (KeyError, TypeError, ValueError):
             continue
     return res
+
+
+def fallback_hook(vc, counted):
+    """Factual hook built from the strongest kept item's real title: 'your' only when the partner acted personally."""
+    if not counted:
+        return ""
+    best = sorted(counted, key=lambda k: (k["actor"] != "person", -k["points"]))[0]
+    who = "your" if best["actor"] == "person" else re.sub(r"\s*\(.*\)", "", vc["firm"]).strip() + "'s"
+    verb = {"invested": "deal coverage", "wrote": "post", "said": "interview", "appeared": "event appearance"}.get(best["kind"], "news")
+    return 'Saw %s %s "%s" (%s)' % (who, verb, best["title"][:90], short_date(best["published"]))
 
 
 # ---------------------------------------------------------------- scoring (code, explainable)
@@ -382,8 +394,11 @@ def process(run_id, vc_ids, workers=8, judge_size=10):
         hook_src = items[v["hook_item"]] if v and isinstance(v.get("hook_item"), int) and 0 <= v["hook_item"] < len(items) else None
         hook_ok = hook_src is not None and any(k["event"] == next((x["event"] for x in kept if x["url"] == hook_src["url"]), None)
                                                for k in counted)
-        # the hook must come from evidence our code kept; otherwise fall back to the strongest kept item
-        hook = ((v or {}).get("hook", "") if hook_ok else (counted[0]["summary"] if counted else "")).strip().rstrip(".… ")
+        hook_kept = next((k for k in counted if hook_src is not None and k["url"] == hook_src["url"]), None)
+        if hook_ok and hook_kept is not None and hook_kept["actor"] == "firm" and re.search(r"\byour\b", (v or {}).get("hook", ""), re.I):
+            hook_ok = False  # Gemini said "your ..." about something only the firm did
+        # the hook must come from evidence our code kept; otherwise the code writes a plain factual one
+        hook = ((v or {}).get("hook", "") if hook_ok else fallback_hook(vc, counted)).strip().rstrip(".… ")
         hook = hook + "." if hook else ""
         action = action_for(vc, total, strength, days, hook, kept[0] if kept else None, today, last_any, mention)
         if kept:
