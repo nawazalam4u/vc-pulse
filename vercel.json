@@ -1,0 +1,17 @@
+{
+  "cleanUrls": true,
+  "functions": {
+    "api/run.py": { "maxDuration": 300 },
+    "api/cron.py": { "maxDuration": 300 },
+    "api/*.py": { "maxDuration": 60 }
+  },
+  "crons": [
+    { "path": "/api/cron", "schedule": "30 1 * * 1,4" }
+  ],
+  "headers": [
+    { "source": "/(.*)", "headers": [
+      { "key": "X-Content-Type-Options", "value": "nosniff" },
+      { "key": "Referrer-Policy", "value": "strict-origin-when-cross-origin" }
+    ] }
+  ]
+}

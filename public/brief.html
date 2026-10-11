@@ -1,0 +1,151 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>VC Pulse · How it works</title>
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><rect width='32' height='32' rx='9' fill='%236d4aff'/><path d='M4 17h6l3-8 5 15 3-7h7' fill='none' stroke='white' stroke-width='2.6' stroke-linecap='round' stroke-linejoin='round'/></svg>">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Space+Grotesk:wght@500;700&display=swap">
+<link rel="stylesheet" href="/app.css">
+<style>
+  .doc { max-width: 980px; margin: 0 auto; padding: 26px 20px 60px; }
+  .doc h2 { font-size: 24px; margin: 36px 0 10px; } .doc h3 { font-size: 17px; margin: 18px 0 6px; }
+  .doc p, .doc li { color: var(--ink2); font-size: 14.5px; } .doc b { color: var(--ink); }
+  .toc { display: flex; gap: 8px; flex-wrap: wrap; margin: 14px 0 0; }
+  .toc a { background: #fff; border: 1px solid var(--line); padding: 6px 12px; border-radius: 999px; font-weight: 600; font-size: 13px; }
+  .why { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; }
+  .why .box p { margin: 0; }
+  .checks { display: grid; gap: 10px; }
+  .chk { background: #fff; border: 1px solid var(--line); border-radius: 14px; padding: 12px 16px; display: grid; grid-template-columns: 56px 1fr 92px; gap: 12px; align-items: start; }
+  .chk .n { font-family: "Space Grotesk"; font-size: 24px; font-weight: 700; color: var(--violet); }
+  .chk h4 { margin: 0 0 3px; font-size: 15px; } .chk p { margin: 0; font-size: 13.5px; }
+  .chk .v { text-align: center; font-weight: 700; font-size: 12px; padding: 4px 6px; border-radius: 8px; background: var(--ok2); color: var(--ok); }
+  .chk .grp { font-size: 11px; color: var(--mute); text-transform: uppercase; letter-spacing: .05em; }
+  .cut { background: linear-gradient(135deg, #fff0eb, #fff); border: 1px solid #ffd2c4; border-radius: 16px; padding: 16px 18px; }
+  .map { background: #fff; border: 1px solid var(--line); border-radius: 18px; padding: 10px; overflow-x: auto; }
+  .qa { background: #fff; border: 1px solid var(--line); border-radius: 12px; padding: 12px 16px; margin-bottom: 8px; }
+  .qa summary { color: var(--ink); font-size: 14.5px; }
+  .qa p { margin: 8px 0 0; }
+  table.mini { min-width: 0; border: 1px solid var(--line); border-radius: 12px; overflow: hidden; background: #fff; }
+  table.mini td, table.mini th { font-size: 13px; }
+  @media (max-width: 720px) { .why { grid-template-columns: 1fr; } .chk { grid-template-columns: 40px 1fr; } .chk .v { grid-column: 2; justify-self: start; } }
+</style>
+</head>
+<body>
+<header class="top"><div class="wrap">
+  <a class="logo" href="/"><svg viewBox="0 0 32 32"><rect width="32" height="32" rx="9" fill="#6d4aff"/><path d="M4 17h6l3-8 5 15 3-7h7" fill="none" stroke="#fff" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"/></svg>VC Pulse</a>
+  <nav class="tabs"><a class="tab" href="/">← Back to the pipeline</a><a class="tab on" href="/brief">How it works</a></nav>
+</div></header>
+
+<div class="hero" style="padding-bottom:34px"><div class="wrap">
+  <h1>VC Fundraising Pipeline Intelligence</h1>
+  <p>MESA Cohort C4 · AI and its Applications · Final examination · Nawaz Alam. Built and deployed on Vercel with Gemini Flash, Neon Postgres and live public data.</p>
+  <div class="toc"><a href="#brief">Automation brief</a><a href="#checks">Nine checks</a><a href="#cut">The Cut</a><a href="#map">Components map</a><a href="#guard">Notes guard</a><a href="#data">Live data</a><a href="#score">Scoring</a><a href="#flags">Assumptions</a><a href="#viva">Viva Q&amp;A</a></div>
+</div></div>
+
+<div class="doc">
+<h2 id="brief">1 · Automation brief</h2>
+<div class="why">
+  <div class="box"><h4>😣 Pain</h4><p>Vikram tracks 50 VCs in a spreadsheet. It records <b>who</b> and <b>when he last spoke</b>, but not <b>who is worth contacting now</b>. Finding out means googling 50 people twice a week. So he chases on gut feel, spends energy on quiet VCs and misses the moment an active one would have replied.</p></div>
+  <div class="box"><h4>👤 User</h4><p><b>Vikram</b>, first-time founder of a seed-stage B2B logistics SaaS, two months into the raise. Works his pipeline <b>twice a week</b>. Not technical; lives in his table.</p></div>
+  <div class="box"><h4>🎯 Outcome</h4><p>On Monday and Thursday morning his table is <b>already up to date</b>: who to contact this week, the <b>observable signal from the last 30 days</b> behind each pick (with a link), who is quiet, and what to do. His own notes stay untouched.</p></div>
+</div>
+<h3>Journey today → with VC Pulse</h3>
+<table class="mini"><tr><th>Today (manual)</th><th>With VC Pulse</th></tr>
+<tr><td>Open spreadsheet, google each VC, skim LinkedIn/news (~2-3 h, often skipped)</td><td>07:00 IST Mon/Thu: cron refreshes all 50 VCs from 5 live sources (~2 min, unattended)</td></tr>
+<tr><td>Judge relevance by gut; easy to miss a logistics deal or a podcast</td><td>Gemini Flash reads every item: is it really this VC, what did they do, how close to logistics?</td></tr>
+<tr><td>Copy findings into notes by hand, sometimes overwriting old context</td><td>Only 4 signal columns are written; his notes are protected by the database itself</td></tr>
+<tr><td>Write a generic "just following up" email</td><td>Evidence-backed hook + one-click Gemini draft (he edits and sends it himself)</td></tr></table>
+
+<h2 id="checks">2 · The Nine Checks</h2>
+<div class="checks">
+  <div class="chk"><div class="n">01</div><div><div class="grp">Kill switch</div><h4>Problem real</h4><p>Timing decides whether a cold or follow-up email gets read. 50 VCs × 5 places to look × twice a week = 500 lookups a week. No founder does that consistently, so outreach falls back to gut feel.</p></div><div class="v">PASS</div></div>
+  <div class="chk"><div class="n">02</div><div><div class="grp">Kill switch</div><h4>Workflow repeated</h4><p>Every Monday and Thursday for the whole raise (typically 3-6 months): around 50 repetitions of the same research loop.</p></div><div class="v">PASS</div></div>
+  <div class="chk"><div class="n">03</div><div><div class="grp">Kill switch</div><h4>Input available</h4><p>Yes, from <b>public, official feeds</b>: Google News RSS, the VCs' own blog/Substack RSS, Apple's Podcasts search API, and Gemini's Google Search tool when the API plan allows it. LinkedIn/X are deliberately <b>not</b> scraped (terms of service, account bans).</p></div><div class="v">PASS</div></div>
+  <div class="chk"><div class="n">04</div><div><div class="grp">Sizing</div><h4>Output valuable</h4><p>A ranked "this week" board (reach out / warm / wait / park), a one-line action per VC, the evidence links, and an email draft that cites the signal.</p></div><div class="v">PASS</div></div>
+  <div class="chk"><div class="n">05</div><div><div class="grp">Sizing</div><h4>Impact measurable</h4><p>Research time per session (≈2-3 h → ≈3 min of review); share of outreach that has a concrete hook (target 100% of "reach out" picks); reply rate of signal-timed emails versus generic follow-ups (tracked from his contact history).</p></div><div class="v">PASS</div></div>
+  <div class="chk"><div class="n">06</div><div><div class="grp">Boundary</div><h4>Failure risk OK</h4><p>Risks: wrong person with the same name, stale news, AI invention. Controls: every signal carries a source link and the source's own date; Gemini may only classify items it is given (never invent); items it rejects stay visible; a failed AI call keeps the previous verdict rather than wrongly marking someone "quiet". The worst case is one email sent at a slightly worse moment, which is cheap and recoverable.</p></div><div class="v">PASS</div></div>
+  <div class="chk"><div class="n">07</div><div><div class="grp">Boundary</div><h4>Judgment protected</h4><p>The system recommends; <b>Vikram decides and sends</b>. It never emails a VC and never edits his contact history or notes. That is enforced by Postgres column permissions, not just by good intentions.</p></div><div class="v">PASS</div></div>
+  <div class="chk"><div class="n">08</div><div><div class="grp">Sizing</div><h4>ROI worth it</h4><p>Running cost is about ₹0: Vercel Hobby, Neon free tier, Gemini Flash free tier (~10 short AI calls per run, ~1,000 a year). It saves ~4-5 founder-hours a week, during the most time-starved months of a company.</p></div><div class="v">PASS</div></div>
+  <div class="chk"><div class="n">09</div><div><div class="grp">Boundary</div><h4>Owner clear</h4><p><b>Vikram</b> owns the relationships and his columns. <b>VC Pulse</b> (the <code>pulse_engine</code> login) owns exactly 4 signal columns. <b>The builder</b> owns the sources, the prompt and the scoring rules (all in the public repo).</p></div><div class="v">PASS</div></div>
+</div>
+
+<h2 id="cut">3 · The Cut: what we deliberately do <i>not</i> automate</h2>
+<div class="cut">
+  <p><b>Sending the email.</b> Fundraising is a relationship business; one tone-deaf automated email to a partner can cost a relationship. VC Pulse drafts, Vikram sends.</p>
+  <p><b>Writing to his contact history or notes.</b> The brief says they must remain untouched, so the engine's database login has no permission to write them at all.</p>
+  <p><b>Scraping LinkedIn / X.</b> It would add signal, but it breaks their terms and risks bans. We use official public feeds instead and say so openly.</p>
+  <p style="margin:0"><b>Deciding the score with AI.</b> Gemini classifies evidence; plain code does the arithmetic. Same evidence → same score, every time, and it can be explained line by line.</p>
+</div>
+
+<h2 id="map">4 · Components map</h2>
+<div class="map">
+<svg viewBox="0 0 960 470" width="100%" style="min-width:760px;font-family:Inter,sans-serif">
+  <defs><marker id="ar" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0 0L10 5L0 10z" fill="#8a87a6"/></marker></defs>
+  <g font-size="12">
+    <text x="20" y="28" font-weight="700" fill="#6d4aff" font-size="13">TRIGGER</text>
+    <rect x="20" y="38" width="160" height="78" rx="12" fill="#f3efff" stroke="#c9b8ff"/><text x="32" y="62" font-weight="700" fill="#14122b">Vercel Cron</text><text x="32" y="80" fill="#4a4766">Mon + Thu, 07:00 IST</text><text x="32" y="98" fill="#4a4766">or "Refresh now" button</text>
+    <text x="210" y="28" font-weight="700" fill="#6d4aff" font-size="13">INPUT</text>
+    <rect x="210" y="38" width="170" height="78" rx="12" fill="#eef5ff" stroke="#9bbcf0"/><text x="222" y="62" font-weight="700" fill="#14122b">Vikram's table (Neon)</text><text x="222" y="80" fill="#4a4766">50 VCs: name, firm, thesis,</text><text x="222" y="98" fill="#4a4766">status, last contact, notes</text>
+    <text x="410" y="28" font-weight="700" fill="#6d4aff" font-size="13">CONTEXT · live, last 30 days</text>
+    <rect x="410" y="38" width="260" height="124" rx="12" fill="#fff" stroke="#e7e5f2"/>
+    <text x="422" y="60" fill="#14122b">📰 Google News RSS: the person</text><text x="422" y="80" fill="#14122b">💼 Google News RSS: firm + logistics</text><text x="422" y="100" fill="#14122b">✍️ Their blog / Substack RSS</text><text x="422" y="120" fill="#14122b">🎙 Apple Podcasts search API</text><text x="422" y="140" fill="#8a87a6">🔎 Gemini + Google Search (if plan allows)</text>
+    <text x="700" y="28" font-weight="700" fill="#6d4aff" font-size="13">PROCESSING</text>
+    <rect x="700" y="38" width="240" height="78" rx="12" fill="#fff" stroke="#e7e5f2"/><text x="712" y="62" fill="#14122b">De-duplicate, keep only items</text><text x="712" y="80" fill="#14122b">with a link + source date ≤ 30 days</text><text x="712" y="98" fill="#4a4766">(up to 18 per VC, newest first)</text>
+    <text x="700" y="200" font-weight="700" fill="#6d4aff" font-size="13">AI · Gemini Flash</text>
+    <rect x="700" y="210" width="240" height="106" rx="12" fill="#14122b"/><text x="712" y="234" font-weight="700" fill="#fff">Judge each item (JSON schema)</text><text x="712" y="254" fill="#cfcaf5">actor: person / firm / not them</text><text x="712" y="272" fill="#cfcaf5">kind: invested · wrote · spoke · event</text><text x="712" y="290" fill="#cfcaf5">fit to logistics 0-3 · summary · hook</text><text x="712" y="306" fill="#8f8ac0" font-size="11">3.5 Flash → 3.5 Flash-Lite → 3.1 Flash-Lite</text>
+    <text x="410" y="200" font-weight="700" fill="#6d4aff" font-size="13">RULES · plain code</text>
+    <rect x="410" y="210" width="260" height="106" rx="12" fill="#fff7e0" stroke="#f5c451"/><text x="422" y="234" font-weight="700" fill="#14122b">Follow-up score 0-100</text><text x="422" y="254" fill="#4a4766">signal strength (type × fit × freshness)</text><text x="422" y="272" fill="#4a4766">+ thesis fit + timing from his status</text><text x="422" y="290" fill="#4a4766">→ REACH OUT · NUDGE · WARM · WAIT ·</text><text x="422" y="306" fill="#4a4766">  LOW · PARK + reason</text>
+    <text x="20" y="200" font-weight="700" fill="#6d4aff" font-size="13">OUTPUT</text>
+    <rect x="20" y="210" width="360" height="106" rx="12" fill="#f3efff" stroke="#c9b8ff"/><text x="32" y="234" font-weight="700" fill="#14122b">Write ONLY 4 signal columns</text><text x="32" y="254" fill="#4a4766">last_signal_date · signal_summary · follow_up_score ·</text><text x="32" y="272" fill="#4a4766">recommended_action (login: pulse_engine)</text><text x="32" y="290" fill="#4a4766">+ evidence table, run log, notes fingerprint</text><text x="32" y="306" fill="#4a4766">+ optional Telegram brief</text>
+    <rect x="20" y="360" width="920" height="88" rx="14" fill="#e6f7ef" stroke="#8fd9b6"/><text x="36" y="386" font-weight="700" fill="#0b7a4c" font-size="13">HUMAN GATE · Vikram</text><text x="36" y="408" fill="#14122b">Opens the pipeline (already up to date) → checks the evidence links → asks Gemini for a draft → edits and sends it himself → updates his own status, contact history and notes (login: pulse_founder).</text><text x="36" y="428" fill="#4a4766">Nothing is ever sent to a VC automatically. His columns can only be changed by him.</text>
+  </g>
+  <g stroke="#8a87a6" stroke-width="1.6" fill="none" marker-end="url(#ar)">
+    <path d="M180 77h26"/><path d="M380 77h26"/><path d="M670 77h26"/><path d="M820 116v90"/><path d="M700 263h-26"/><path d="M410 263h-26"/><path d="M200 316v40"/>
+  </g>
+</svg>
+</div>
+
+<h2 id="guard">5 · How Vikram's notes are protected (the critical requirement)</h2>
+<p>Four layers, each enough on its own:</p>
+<ol>
+  <li><b>Database permissions.</b> The engine logs in as <code>pulse_engine</code>, which Postgres allows to UPDATE only <code>last_signal_date, signal_summary, follow_up_score, recommended_action</code>. Any attempt to write <code>notes</code> fails with <i>permission denied</i>. Try it live on the <a href="/#guard">Notes guard</a> tab.</li>
+  <li><b>Separation of duties.</b> The edit screen logs in as <code>pulse_founder</code>, which can write only Vikram's columns, so it can't fake a score either. The all-powerful owner login is not even stored on the server.</li>
+  <li><b>Targeted updates.</b> The engine never does "read the whole row, change it, write the whole row back" (the classic bug that wipes a note Vikram typed mid-run). It runs one <code>UPDATE … SET</code> the four columns <code>WHERE id = …</code>.</li>
+  <li><b>Proof on every run.</b> An MD5 fingerprint of all of Vikram's columns is taken before and after each run and stored in the run log; matching fingerprints prove nothing of his changed.</li>
+</ol>
+<p><b>Supabase vs Neon:</b> the brief says "Supabase table". Supabase and Neon are both hosted <b>Postgres</b>; our schema (<code>db/schema.sql</code>) and permissions (<code>db/roles.sql</code>) are plain Postgres and run unchanged on Supabase. Neon was used because the free Supabase project slots on this account are in use by earlier portfolio apps. Switching means pointing the two connection strings at Supabase; no code changes.</p>
+
+<h2 id="data">6 · Live data: where signals come from</h2>
+<table class="mini"><tr><th>Source</th><th>Finds</th><th>Why this one</th></tr>
+<tr><td>Google News RSS: <code>"Name" when:30d</code></td><td>interviews, quotes, op-eds, event coverage</td><td>Official public feed; no key; India/US editions by region</td></tr>
+<tr><td>Google News RSS: <code>"Firm" (logistics OR "supply chain" OR freight…)</code></td><td>the firm's deals in Vikram's space</td><td>Catches "new portfolio investment in a logistics company"</td></tr>
+<tr><td>VC blog / Substack RSS</td><td>things they wrote</td><td>Authoritative: their own words, their own dates</td></tr>
+<tr><td>Apple Podcasts Search API</td><td>podcast episodes they appeared on</td><td>Public API; "said in an interview"</td></tr>
+<tr><td>Gemini + Google Search grounding</td><td>talks, panels, demo days</td><td>Switches on automatically when the Gemini API plan allows it (the free tier doesn't). Only links Google actually returned are kept</td></tr></table>
+<p>Every item keeps its <b>URL and the source's own publish date</b>. Anything older than 30 days is dropped before the AI sees it.</p>
+
+<h2 id="score">7 · Scoring (explainable by design)</h2>
+<p><b>Signal points</b> = type weight (invested 40 · wrote 34 · spoke 30 · event 26 · in the news 14) × topic fit (logistics 1.0 · adjacent B2B 0.6 · general 0.3) × who acted (the partner 1.0 · only their firm 0.7) × freshness (100% for 7 days, fading to 40% at day 30).<br>
+<b>Signal strength</b> = best + 40% of 2nd + 20% of 3rd, capped at 70. <b>Thesis fit</b> +3 / +8 / +15. <b>Timing</b> (from Vikram's own columns, read-only): followed up &lt;7 days ago −30 (don't pester), 7-14 days −10, waiting 14+ days with a fresh signal +10 (perfect nudge), not contacted yet with a fresh signal +10.<br>
+<b>Actions:</b> score ≥ 55 → REACH OUT / NUDGE · 35-54 → WARM · followed up &lt;7 days → WAIT · no signal → PARK · active but off-topic → LOW. Open any investor to see their maths.</p>
+
+<h2 id="flags">8 · Assumptions &amp; red flags (stated, not hidden)</h2>
+<ul>
+  <li><b>Vikram is fictional</b>, so his company ("Haulr") and his contact notes are illustrative. The <b>50 investors, firms and theses are real</b> (verified against firm team pages, Oct 2026), and every signal is live public data.</li>
+  <li><b>"Quiet" means quiet in public sources.</b> A VC can be busy privately; the system says "no public activity found", never "not investing".</li>
+  <li><b>Same-name risk</b> (e.g. a common name): handled by Gemini's actor check plus visible rejected items; Vikram can always click the source.</li>
+  <li><b>Free-tier limits</b>: if Gemini is busy, the run falls back to smaller Flash models; if all fail for a VC, that VC keeps its previous verdict and the run log counts it.</li>
+  <li><b>Vercel Hobby cron</b> fires within the scheduled hour (07:00-07:59 IST), which is fine for "before he starts work".</li>
+</ul>
+
+<h2 id="viva">9 · Viva Q&amp;A</h2>
+<details class="qa"><summary><b>Where exactly does AI add value? Couldn't this be keyword matching?</b></summary><p>Keywords can't tell "Rajan Anandan co-wrote a book" (him acting) from "a company Peak XV once backed raised money from someone else" (not him), or a consumer-TV deal from a freight deal. Gemini reads each headline and classifies actor, act and topic fit, then writes a specific hook. The arithmetic stays in code so it is auditable.</p></details>
+<details class="qa"><summary><b>How do you stop the AI from hallucinating signals?</b></summary><p>Gemini never searches or invents in the main path. It only labels items we fetched, each with a real URL and the source's date. The JSON schema forces structured output, temperature is 0.1, and anything it rejects is still shown. For Google Search grounding, we keep only links whose domain Google actually returned.</p></details>
+<details class="qa"><summary><b>Prove the notes can't be overwritten.</b></summary><p>Open the Notes guard tab and press "Attack my own database": the engine login tries to overwrite a note and Postgres answers "permission denied for table vcs". Column privileges are read live from information_schema. Every run also stores before/after fingerprints of his columns.</p></details>
+<details class="qa"><summary><b>Why twice a week, and how is it scheduled?</b></summary><p>Vikram works his pipeline twice a week (from the brief). Vercel Cron calls <code>/api/cron</code> at 01:30 UTC (07:00 IST) on Mondays and Thursdays, protected by a secret. It processes all 50 investors in parallel in about two minutes.</p></details>
+<details class="qa"><summary><b>What would you build next to make it a product?</b></summary><p>Multi-founder accounts (row-level security per founder), Gmail integration to log replies into contact history automatically (with consent), signal alerts in Slack/Telegram, a reply-rate dashboard to tune the weights from real outcomes, and paid Gemini search grounding for event coverage.</p></details>
+<details class="qa"><summary><b>What does it cost?</b></summary><p>About ₹0 at this scale: Vercel Hobby, Neon free tier, Gemini Flash free tier (~10 AI calls per run because 5-6 investors share one call). The news, blog and podcast sources are free public feeds.</p></details>
+</div>
+</body>
+</html>

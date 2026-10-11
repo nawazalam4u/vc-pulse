@@ -1,0 +1,121 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>VC Pulse · Vikram's Seed pipeline</title>
+<meta name="description" content="Which VCs are worth reaching out to this week, and why. Live public signals from the last 30 days, judged by Gemini Flash.">
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><rect width='32' height='32' rx='9' fill='%236d4aff'/><path d='M4 17h6l3-8 5 15 3-7h7' fill='none' stroke='white' stroke-width='2.6' stroke-linecap='round' stroke-linejoin='round'/></svg>">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Space+Grotesk:wght@500;700&display=swap">
+<link rel="stylesheet" href="/app.css">
+</head>
+<body>
+<header class="top">
+  <div class="wrap">
+    <a class="logo" href="/"><svg viewBox="0 0 32 32"><rect width="32" height="32" rx="9" fill="#6d4aff"/><path d="M4 17h6l3-8 5 15 3-7h7" fill="none" stroke="#fff" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"/></svg>VC Pulse</a>
+    <nav class="tabs">
+      <button class="tab on" data-view="week">This week</button>
+      <button class="tab" data-view="table">Pipeline table</button>
+      <button class="tab" data-view="guard">Notes guard</button>
+      <button class="tab" data-view="runs">Run history</button>
+      <a class="tab" href="/brief">How it works</a>
+    </nav>
+    <div class="right">
+      <span class="pill dark"><span class="dot"></span>Live data</span>
+      <span class="pill edit" id="editPill" hidden>✎ Editor mode</span>
+    </div>
+  </div>
+</header>
+
+<div class="hero">
+  <div class="wrap">
+    <div class="row">
+      <div>
+        <h1 id="greet">Good morning, Vikram.</h1>
+        <p>Which of your <b id="nVcs">50</b> investors are worth reaching out to <b>this week</b>, and why. Each pick is backed by a public signal from the last 30 days that you can click and check yourself, never a hunch.</p>
+      </div>
+      <div class="cta">
+        <button class="btn primary" id="runBtn">⚡ Refresh signals now</button>
+        <div class="meta" id="runMeta">Loading…</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="wrap">
+  <div class="stats">
+    <div class="stat hot"><b id="sHot">–</b><span>🔥 Reach out this week</span></div>
+    <div class="stat warm"><b id="sWarm">–</b><span>🌤 Warm, if you have time</span></div>
+    <div class="stat wait"><b id="sWait">–</b><span>⏳ Ball in their court</span></div>
+    <div class="stat park"><b id="sPark">–</b><span>💤 Quiet: don't chase</span></div>
+    <div class="stat scan"><b id="sScan">–</b><span>📡 Public items checked</span></div>
+    <div class="stat safe"><b id="sSafe">–</b><span>🔒 Your notes untouched</span></div>
+  </div>
+
+  <section class="view on" id="v-week">
+    <div class="h2row"><h2>This week's moves</h2><p>Sorted by follow-up score. Click any card for the evidence and a drafted email.</p></div>
+    <div class="board" id="board">
+      <div class="lane"><div class="skel"></div><div class="skel"></div></div><div class="lane"><div class="skel"></div></div>
+      <div class="lane"><div class="skel"></div></div><div class="lane"><div class="skel"></div></div>
+    </div>
+  </section>
+
+  <section class="view" id="v-table">
+    <div class="h2row"><h2>Pipeline table</h2><p>The same table that lives in the database. Blue columns are yours; purple columns are updated by VC Pulse on every run.</p></div>
+    <div class="legend"><span><i style="background:#dceaff"></i>🔒 Your columns: the engine has no permission to write here</span><span><i style="background:#e6defe"></i>⚡ Signal columns: the only ones the engine may update</span></div>
+    <div class="toolbar">
+      <input class="search" id="q" placeholder="Search investor, firm, thesis, notes…">
+      <button class="fchip on" data-f="all">All</button>
+      <button class="fchip" data-f="hot">🔥 Reach out</button>
+      <button class="fchip" data-f="WARM">🌤 Warm</button>
+      <button class="fchip" data-f="waiting_response">⏳ Waiting on them</button>
+      <button class="fchip" data-f="PARK">💤 Quiet</button>
+      <button class="btn line sm" id="csvOut">⬇ Export CSV</button>
+      <label class="btn line sm" id="csvInLbl" hidden>⬆ Import CSV<input type="file" id="csvIn" accept=".csv" hidden></label>
+    </div>
+    <div class="tablebox"><table id="tbl"></table></div>
+    <p class="meta" style="color:var(--ink2)" id="editHint"></p>
+  </section>
+
+  <section class="view" id="v-guard">
+    <div class="h2row"><h2>Notes guard</h2><p>The rule: never overwrite Vikram's notes. VC Pulse doesn't just promise this; Postgres enforces it.</p></div>
+    <div class="grid2">
+      <div class="box"><h4>🤖 Signal engine login <code>pulse_engine</code> may update</h4><div class="cols" id="gEng"></div>
+        <p class="meta" style="color:var(--ink2);margin:10px 0 0">Read live from Postgres' own permission tables (<code>information_schema.column_privileges</code>).</p></div>
+      <div class="box"><h4>✍️ Vikram's edit screen <code>pulse_founder</code> may update</h4><div class="cols" id="gFou"></div>
+        <p class="meta" style="color:var(--ink2);margin:10px 0 0">Separation of duties: the screen can't fake a score, the robot can't touch a note.</p></div>
+    </div>
+    <div class="box">
+      <h4>🧪 Try to break it</h4>
+      <p style="margin:0 0 10px">Press the button: the robot tries to overwrite a real note in the table, and the edit screen tries to fake a score. Every attempt is wrapped in a transaction that is forced to roll back, so pressing this is always safe.</p>
+      <button class="btn primary" id="tamperBtn">Attack my own database</button>
+      <div id="tamperOut"></div>
+    </div>
+    <div class="box"><h4>🧾 Fingerprint of Vikram's columns, before and after every run</h4>
+      <p style="margin:0 0 8px;color:var(--ink2)">An MD5 hash of all his columns (name, firm, thesis, status, last contact, contact history, notes) is taken when a run starts and again when it ends. If they match, nothing of his changed.</p>
+      <div id="gRuns"></div></div>
+  </section>
+
+  <section class="view" id="v-runs">
+    <div class="h2row"><h2>Run history</h2><p>Automatic runs: <b>Monday and Thursday, 07:00 IST</b> (Vercel Cron), before Vikram starts work. Plus any "Refresh now".</p></div>
+    <div class="runs" id="runs"></div>
+  </section>
+  <div class="foot">VC Pulse · built for MESA "AI and its Applications" · investors and their public signals are real; Vikram, Haulr and the contact notes are illustrative · AI: Gemini Flash · data: Google News, Apple Podcasts, VC blogs · database: Neon Postgres</div>
+</div>
+
+<div class="scrim" id="scrim"></div>
+<aside class="drawer" id="drawer"></aside>
+
+<div class="modal" id="runModal"><div class="mbox">
+  <div class="mtop"><div class="radar" id="radar"></div><div style="flex:1">
+    <h3 id="mTitle">Scanning your pipeline…</h3><div class="meta" id="mSub">Fetching news, deals, blogs and podcasts for each investor; Gemini Flash judges every item.</div>
+    <div class="prog"><i id="mBar"></i></div></div></div>
+  <div class="feed" id="mFeed"></div>
+  <div class="mfoot"><span class="meta" style="color:var(--ink2)" id="mFoot">Your notes are protected: the engine's login can only write 4 columns.</span>
+    <button class="btn line sm" id="mClose" style="margin-left:auto" hidden>Close</button></div>
+</div></div>
+<div class="toast" id="toast"></div>
+<script src="/app.js"></script>
+</body>
+</html>
