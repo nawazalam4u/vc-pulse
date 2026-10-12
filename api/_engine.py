@@ -191,13 +191,16 @@ def fallback_hook(vc, counted):
     top = max(k["points"] for k in counted)
     strong = [k for k in counted if k["points"] >= 0.6 * top]  # the partner's own act wins only if it's comparably strong
     best = sorted(strong, key=lambda k: (k["actor"] != "person" and k.get("angle") != "thesis", -k["points"]))[0]
-    who = "your" if best["actor"] == "person" else re.sub(r"\s*\(.*\)", "", vc["firm"]).strip() + "'s"
-    verb = {"invested": "deal coverage", "wrote": "post", "said": "interview", "appeared": "event appearance"}.get(best["kind"], "news")
+    firm = re.sub(r"\s*\(.*\)", "", vc["firm"]).strip()
+    firm_pos = firm + ("'" if firm.endswith("s") else "'s")
+    when = short_date(best["published"])
+    title = best["title"][:90]
+    if best["actor"] == "person" and best.get("origin") != "firm_news":
+        verb = {"wrote": "post", "said": "interview", "appeared": "talk"}.get(best["kind"], "post" if best.get("origin") == "blog" else "comments")
+        return 'Saw your %s "%s" (%s)' % (verb, title, when)
     if best.get("origin") == "blog":
-        verb = "post"
-    if best.get("angle") == "thesis":
-        verb = {"wrote": "post on", "said": "comments on", "appeared": "talk on"}.get(best["kind"], "view on")
-    return 'Saw %s %s "%s" (%s)' % (who, verb, best["title"][:90], short_date(best["published"]))
+        return 'Saw %s post "%s" (%s)' % (firm_pos, title, when)
+    return 'Saw the %s news: "%s"' % (when, title)  # a deal or announcement, quoted exactly as reported
 
 
 # ---------------------------------------------------------------- scoring (code, explainable)

@@ -89,9 +89,12 @@ H = e.fallback_hook({"firm": "Andreessen Horowitz (a16z)"}, [
     {"actor": "firm", "points": 20, "kind": "wrote", "title": "Investing in TypeSafe AI", "published": T},
     {"actor": "person", "points": 15, "kind": "wrote", "title": "My own post", "published": T}])
 check("fallback hook prefers the partner's own act and only says 'your' for it", H.startswith('Saw your post "My own post"'))
-check("fallback hook for a firm act names the firm, not 'your'",
+check("fallback hook for a firm deal quotes the news, never says 'your'",
       e.fallback_hook({"firm": "Point Nine"}, [{"actor": "firm", "points": 9, "kind": "invested", "title": "Procuros raises EUR 20M",
-                                                "published": T}]).startswith("Saw Point Nine's deal coverage"))
+                                                "published": T}]) == 'Saw the 11 Oct news: "Procuros raises EUR 20M"')
+check("firm names ending in s get a clean possessive (no \"Ventures's\")",
+      e.fallback_hook({"firm": "Inflection Point Ventures"}, [{"actor": "firm", "points": 9, "kind": "wrote", "origin": "blog",
+                                                               "title": "Our view", "published": T}]).startswith("Saw Inflection Point Ventures' post"))
 
 base = e.score(LOGI, [sig("invested", 3, 2)], T)[0]
 conf = e.score(LOGI, [sig("invested", 3, 2)], T, "FreightCo")

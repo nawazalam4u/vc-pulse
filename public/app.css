@@ -157,7 +157,7 @@ details summary { cursor: pointer; color: var(--ink2); font-weight: 600; font-si
 
 /* guard */
 .grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
-.cols { display: flex; flex-wrap: wrap; gap: 6px; }
+div.cols { display: flex; flex-wrap: wrap; gap: 6px; }
 .col { font-family: ui-monospace, Menlo, monospace; font-size: 12px; padding: 3px 8px; border-radius: 7px; }
 .col.yes { background: var(--ok2); color: #0b7a4c; } .col.no { background: var(--bad2); color: var(--bad); text-decoration: line-through; }
 .attempt { display: grid; grid-template-columns: 34px 1fr; gap: 10px; padding: 10px 0; border-top: 1px solid var(--line); }
