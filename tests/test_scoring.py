@@ -11,8 +11,12 @@ LOGI = {"thesis": "Seed B2B supply chain and logistics software", "status": "yet
 GEN = {"thesis": "Consumer brands", "status": "yet_to_reach_out", "last_contact_date": None}
 
 
-def sig(kind, rel, days, actor="person"):
-    return {"points": e.KIND_W[kind] * e.REL_M[rel] * e.ACTOR_M[actor] * e.recency(days)}
+ANGLE_OF = {"invested": "deploying", "wrote": "thesis", "said": "thesis", "mentioned": "visible"}
+
+
+def sig(kind, rel, days, actor="person", angle=None):
+    angle = angle or ANGLE_OF.get(kind, "visible")
+    return {"points": e.signal_points(angle, rel, actor, days), "angle": angle}
 
 
 def act(vc, signals, hook="Saw your post"):
@@ -24,8 +28,17 @@ checks = []
 def check(name, cond):
     checks.append((name, cond))
 
-t, a = act(LOGI, [sig("invested", 3, 2)])
-check("fresh logistics deal + logistics thesis + not contacted -> REACH OUT", a.startswith("REACH OUT") and t >= 55)
+t, a = act(LOGI, [sig("said", 3, 2, angle="thesis")])
+check("investor SAYS they want logistics software (thesis) + not contacted -> REACH OUT", a.startswith("REACH OUT") and t >= 55)
+t, a = act(LOGI, [sig("invested", 3, 2, "firm", angle="complement")])
+check("a deal in an adjacent logistics company ALONE is not a reach-out (only WARM)", a.startswith("WARM"))
+check("thesis > deploying > complement > visible (what a signal means decides its weight)",
+      e.signal_points("thesis", 3, "person", 2) > e.signal_points("deploying", 3, "person", 2)
+      > e.signal_points("complement", 3, "person", 2) > e.signal_points("visible", 3, "person", 2))
+check("an overlap (direct competitor) earns no positive points", e.signal_points("overlap", 3, "firm", 1) == 0)
+check("AI can't call a deal a 'thesis'; overlap must be a deal",
+      e.check_angle("thesis", "invested") == "complement" and e.check_angle("overlap", "said") == "complement")
+check("India-based investors get the home-market fit", e.geo_fit("Bengaluru, India")[0] == 5 and e.geo_fit("Austin, USA")[0] == 0)
 t, a = act(LOGI, [])
 check("no signal -> PARK, and mentions strong thesis fit", a.startswith("PARK") and "thesis fit" in a)
 t, a = act(dict(LOGI, status="waiting_response", last_contact_date="2026-10-08"), [sig("invested", 3, 1)])

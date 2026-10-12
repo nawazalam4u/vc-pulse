@@ -22,7 +22,19 @@ import _sources
 COMPANY = ("Haulr, a seed-stage B2B logistics SaaS from India (freight visibility, carrier management and "
            "dispatch software for mid-market shippers)")
 
-KIND_W = {"invested": 40, "wrote": 34, "said": 30, "appeared": 26, "mentioned": 14, "other": 6}
+# What a signal MEANS for Haulr decides its weight, not merely what kind of act it was. A past or new deal in the
+# same category is not by itself a reason to invest again: a direct competitor is a conflict (negative), an adjacent
+# company is a medium "complement" signal. The strongest signals show the investor is LOOKING for more deals like Haulr.
+ANGLE_W = {"thesis": 42,      # they say/write they want this space: an open invitation
+           "deploying": 34,   # actively writing new seed/early cheques now (new fund, bigger cheques, new cohort)
+           "complement": 26,  # backed an adjacent, non-competing company: conviction + partnership/intro angle
+           "visible": 10,     # publicly active on other topics: reachable this week, nothing more
+           "overlap": 0,      # backed a direct competitor: handled as a conflict penalty
+           "none": 0}
+ANGLE_LABEL = {"thesis": "Thesis: they say they want this space", "deploying": "Deploying: writing new early cheques",
+               "complement": "Complement: backed an adjacent company", "visible": "Visible: publicly active",
+               "overlap": "Overlap: backed a direct competitor", "none": "Not useful"}
+KIND_W = {"invested": 40, "wrote": 34, "said": 30, "appeared": 26, "mentioned": 14, "other": 6}  # display only
 REL_M = {3: 1.0, 2: 0.6, 1: 0.3, 0: 0.0}
 ACTOR_M = {"person": 1.0, "firm": 0.85}  # deals are announced in the firm's name, so firm acts count nearly fully
 KIND_VERB = {"invested": "invested", "wrote": "wrote", "said": "spoke", "appeared": "appeared at an event",
@@ -42,10 +54,11 @@ JUDGE_SCHEMA = {
                 "i": {"type": "INTEGER"},
                 "actor": {"type": "STRING", "enum": ["person", "firm", "no"]},
                 "kind": {"type": "STRING", "enum": ["invested", "wrote", "said", "appeared", "mentioned", "other"]},
+                "angle": {"type": "STRING", "enum": ["thesis", "deploying", "complement", "overlap", "visible", "none"]},
                 "relevance": {"type": "INTEGER"},
                 "event": {"type": "STRING"},
                 "summary": {"type": "STRING"}},
-                "required": ["i", "actor", "kind", "relevance", "event", "summary"]}},
+                "required": ["i", "actor", "kind", "angle", "relevance", "event", "summary"]}},
             "overall": {"type": "STRING"},
             "hook": {"type": "STRING"},
             "hook_item": {"type": "INTEGER"},
@@ -66,6 +79,20 @@ actor:  "person" if the investor named is the one who acted (wrote it, was inter
         a deal by another investor, generic market news).
 kind:   invested (new investment / led a round) | wrote (post, article, op-ed, newsletter) | said (interview, podcast,
         quote) | appeared (spoke at / attended an event, panel, demo day) | mentioned (in the news, no clear act) | other
+angle:  what the item MEANS for Haulr's chance of getting a meeting. Think like an experienced founder: a past or new
+        investment in the same category is NOT by itself a reason this investor will invest again.
+        "thesis"     = the investor THEMSELVES says or writes they want startups in Haulr's space or problem
+                       (logistics / supply-chain software, operations SaaS, India B2B): a post, talk, interview or
+                       request-for-startups. Only for wrote/said/appeared, never for a deal.
+        "deploying"  = evidence they are actively writing NEW cheques at seed/early stage right now: a new fund, bigger
+                       seed cheques, a new accelerator cohort, a fresh seed/pre-seed deal in B2B software.
+        "complement" = they backed or work with a company in Haulr's ecosystem that is NOT a competitor (shippers,
+                       marketplaces, defence or military logistics, warehouse robotics, supply-chain AI for other
+                       segments): sector conviction plus a partnership or warm-intro angle, nothing more.
+        "overlap"    = they backed a company doing the SAME job as Haulr (freight visibility, carrier management or
+                       dispatch software for shippers). Usually NEGATIVE: VCs rarely fund a portfolio company's rival.
+        "visible"    = publicly active (interview, podcast, event, post) on topics unrelated to Haulr: reachable now.
+        "none"       = not useful (share sales, personal news, unrelated).
 relevance to the founder's space, 0-3 (be strict, judge only what the text says):
         3 = the item itself explicitly mentions logistics, freight, trucking, shipping, warehousing, supply chain,
             fleet or transport operations;
@@ -84,10 +111,13 @@ hook:   <= 22 words, written to THIS investor about THEIR OWN act (an item with 
         honest opening line for the founder's email, e.g. "Saw Peak XV raise Surge checks to $5M on 29 Sep."
         Never mention other people. Return "" if nothing qualifies.
 hook_item: the [number] of the item the hook is based on (-1 if hook is "").
-why:    <= 32 words: WHY this activity matters to the founder's company right now, in plain English. Connect the
-        investor's act to Haulr specifically (their thesis, the space, stage, what it signals about their appetite,
-        what angle it gives the pitch). Example: "8VC just backed logistics software, so the category is top of mind;
-        Haulr is the India/shipper-side version, a complement rather than a competitor." Return "" if nothing qualifies.
+why:    <= 38 words: WHY this matters to Haulr right now, reasoning from the strongest angle, honestly. Say what it
+        does and does NOT prove, and name any mismatch in stage or geography (Haulr is an Indian seed-stage company;
+        the investor's region and thesis are given). Never argue "they invested in logistics before, so they will
+        again". Good: "Point Nine just backed Procuros, an AI supply-chain platform for European suppliers: proof of
+        appetite for supply-chain SaaS at seed, and Procuros is a complement, not a rival. Caveat: Europe-focused."
+        Use ONLY the items, thesis and region given: never cite other portfolio companies, track records or facts from
+        memory. Return "" if nothing qualifies.
 conflict: if a qualifying item shows this investor/firm just backed a DIRECT competitor of Haulr (freight visibility,
         carrier management or dispatch software for shippers), the competitor's name exactly as written in the item;
         otherwise "". Adjacent logistics companies (defence logistics, robotics, warehousing hardware) are NOT conflicts.""" % COMPANY
@@ -124,11 +154,14 @@ def judge(batch):
                                                   (" | author: " + it["author"]) if it.get("author") else "",
                                                   (" | " + it["snippet"][:160]) if it.get("snippet") else "")
                  for i, it in enumerate(items)]
-        blocks.append("INVESTOR vc=%d: %s (%s). Thesis: %s\n%s" % (vc["id"], vc["name"], vc["firm"],
-                                                                   vc.get("thesis") or "-", "\n".join(lines)))
+        blocks.append("INVESTOR vc=%d: %s (%s), based in %s. Thesis: %s\n%s" % (
+            vc["id"], vc["name"], vc["firm"], vc.get("region") or "?", vc.get("thesis") or "-", "\n".join(lines)))
     if not blocks:
         return {}
-    out = _gemini.generate_json("\n\n".join(blocks), JUDGE_SCHEMA, system=JUDGE_SYSTEM, temperature=0.1, timeout=90)
+    out = _gemini.generate_json("\n\n".join(blocks), {"type": "OBJECT", "properties": {"investors": JUDGE_SCHEMA},
+                                                       "required": ["investors"]},
+                                system=JUDGE_SYSTEM, temperature=0.1, timeout=120)
+    out = out.get("investors", []) if isinstance(out, dict) else out
     res = {}
     for row in out if isinstance(out, list) else []:
         try:
@@ -147,9 +180,11 @@ def fallback_hook(vc, counted):
     """Factual hook built from the strongest kept item's real title: 'your' only when the partner acted personally."""
     if not counted:
         return ""
-    best = sorted(counted, key=lambda k: (k["actor"] != "person", -k["points"]))[0]
+    best = sorted(counted, key=lambda k: (k["actor"] != "person" and k.get("angle") != "thesis", -k["points"]))[0]
     who = "your" if best["actor"] == "person" else re.sub(r"\s*\(.*\)", "", vc["firm"]).strip() + "'s"
     verb = {"invested": "deal coverage", "wrote": "post", "said": "interview", "appeared": "event appearance"}.get(best["kind"], "news")
+    if best.get("angle") == "thesis":
+        verb = {"wrote": "post on", "said": "comments on", "appeared": "talk on"}.get(best["kind"], "view on")
     return 'Saw %s %s "%s" (%s)' % (who, verb, best["title"][:90], short_date(best["published"]))
 
 
@@ -208,8 +243,29 @@ def names_them(vc, item, kind):
     return named
 
 
+def check_angle(angle, kind):
+    """Code checks the AI's reading: a thesis is something they SAID, not a deal; an overlap must be an investment."""
+    angle = angle if angle in ANGLE_W else "none"
+    if angle == "thesis" and kind == "invested":
+        return "complement"
+    if angle == "overlap" and kind != "invested":
+        return "complement"
+    return angle
+
+
+def signal_points(angle, rel, actor, days):
+    """Weight by what the signal MEANS (angle) x topic fit x who acted x freshness."""
+    # deploying = open allocation; it counts fully only when the new cheques are in or near Haulr's space
+    topic = REL_M[rel] if angle in ("thesis", "complement") else ({3: 1.0, 2: 0.8}.get(rel, 0.4) if angle == "deploying" else 1.0)
+    return ANGLE_W.get(angle, 0) * topic * ACTOR_M.get(actor, 0.85) * recency(days)
+
+
 def recency(days):
     return 1.0 if days <= 7 else max(0.4, 1 - 0.6 * (days - 7) / 23.0)
+
+
+def geo_fit(region):
+    return (5, "India-based: invests in Haulr's home market") if "india" in (region or "").lower() else (0, "")
 
 
 def thesis_fit(thesis):
@@ -236,12 +292,18 @@ def score(vc, signals, today, conflict=""):
     strength = 0.0
     if pts:
         strength = min(70.0, pts[0] + 0.4 * sum(pts[1:2]) + 0.2 * sum(pts[2:3]))
-        breakdown.append(["Signal strength (best %d signal%s, last 30 days)" % (len(pts), "" if len(pts) == 1 else "s"),
-                          round(strength)])
+        best = max(signals, key=lambda x: x["points"])
+        breakdown.append(["Signal strength: best is %s (%d signal%s, last 30 days)" % (
+            ANGLE_LABEL.get(best.get("angle"), "a signal").split(":")[0].lower(), len(pts), "" if len(pts) == 1 else "s"),
+            round(strength)])
     else:
         breakdown.append(["No qualifying signal in the last 30 days", 0])
     fit, why = thesis_fit(vc.get("thesis"))
     breakdown.append(["Thesis fit: " + why, fit])
+    geo, gwhy = geo_fit(vc.get("region"))
+    if geo:
+        breakdown.append([gwhy, geo])
+        fit += geo
 
     status = vc.get("status") or "yet_to_reach_out"
     last = _d(vc.get("last_contact_date"))
@@ -367,7 +429,7 @@ def process(run_id, vc_ids, workers=8, judge_size=10):
     report = []
     for vc, items, tally in gathered:
         v = verdicts.get(vc["id"])
-        kept = []
+        kept, attributed = [], []
         judged = (v is not None or not items) and not _sources.news_failed(tally)
         for i, it in enumerate(items):
             j = (v or {}).get("items", {}).get(i)
@@ -378,11 +440,13 @@ def process(run_id, vc_ids, workers=8, judge_size=10):
             if not names_them(vc, it, kind):
                 continue
             j = dict(j, actor=blog_actor(vc, it, j["actor"]))
+            angle = check_angle(j.get("angle"), kind)
+            attributed.append(dict(it, angle=angle, kind=kind))
             days = (today - _d(it["published"])).days
-            p = KIND_W[kind] * REL_M[rel] * ACTOR_M[j["actor"]] * recency(days)
+            p = signal_points(angle, rel, j["actor"], days)
             if p < 4:
                 continue
-            kept.append(dict(it, kind=kind, relevance=rel, actor=j["actor"], summary=j.get("summary", "")[:200],
+            kept.append(dict(it, kind=kind, angle=angle, relevance=rel, actor=j["actor"], summary=j.get("summary", "")[:200],
                              event=(j.get("event") or it["url"])[:80], points=round(p, 1)))
         kept.sort(key=lambda s: s["points"], reverse=True)
         # one real-world event = one signal, however many outlets covered it (the others are kept as "also covered")
@@ -398,9 +462,10 @@ def process(run_id, vc_ids, workers=8, judge_size=10):
             newest = max(_d(s["published"]) for s in kept)
             last_any = max(last_any, newest) if last_any else newest
 
-        conflict = (v or {}).get("conflict", "") if kept else ""
-        if conflict and not any(conflict.lower() in (k["title"] + " " + k.get("snippet", "")).lower() for k in kept):
-            conflict = ""  # code check: the competitor must be named in evidence we kept
+        conflict = (v or {}).get("conflict", "")
+        overlaps = [a for a in attributed if a["angle"] == "overlap"]
+        if conflict and not any(conflict.lower() in (a["title"] + " " + a.get("snippet", "")).lower() for a in overlaps):
+            conflict = ""  # code check: the competitor must be named in an investment item we attributed to them
         total, breakdown, strength, days = score(vc, [k for k in kept if not k["dup"]], today, conflict)
         mention = None
         if strength <= 0 and judged:
@@ -445,14 +510,15 @@ def process(run_id, vc_ids, workers=8, judge_size=10):
         for s in items:
             k = next((x for x in kept if x["url"] == s["url"]), None)
             stmts.append(("insert into signals (vc_id, url, title, source, origin, published, kind, relevance, about_vc, "
-                          "summary, points, run_id, event, dup) values ($1,$2,$3,$4,$5,$6::date,$7,$8,$9,$10,$11,$12,$13,$14) "
+                          "summary, points, run_id, event, dup, angle) values ($1,$2,$3,$4,$5,$6::date,$7,$8,$9,$10,$11,$12,$13,$14,$15) "
                           "on conflict (vc_id, url) do update set kind = excluded.kind, relevance = excluded.relevance, "
                           "about_vc = excluded.about_vc, summary = excluded.summary, points = excluded.points, "
-                          "run_id = excluded.run_id, event = excluded.event, dup = excluded.dup",
+                          "run_id = excluded.run_id, event = excluded.event, dup = excluded.dup, angle = excluded.angle",
                           [vc["id"], s["url"], s["title"], s["source"], s["origin"], _iso(s["published"]),
                            k["kind"] if k else None, k["relevance"] if k else 0, bool(k),
                            k["summary"] if k else None, k["points"] if k else 0, run_id,
-                           k["event"] if k else None, bool(k and k["dup"])]))
+                           k["event"] if k else None, bool(k and k["dup"]),
+                           k["angle"] if k else next((a["angle"] for a in attributed if a["url"] == s["url"]), None)]))
         stmts.append(("insert into vc_changes (run_id, vc_id, old_score, new_score, old_action, new_action) "
                       "values ($1,$2,$3,$4,$5,$6) on conflict do nothing",
                       [run_id, vc["id"], vc.get("follow_up_score"), total, vc.get("recommended_action"), action]))
@@ -509,7 +575,7 @@ def run_all(trigger="cron"):
             return []
         return process(rid, chunk, workers=10, judge_size=10)
 
-    with ThreadPoolExecutor(max_workers=3) as ex:
+    with ThreadPoolExecutor(max_workers=5) as ex:  # all 5 batches at once: a full run takes about a minute
         for r in ex.map(work, chunks):
             report += r
     run = finish_run(rid)

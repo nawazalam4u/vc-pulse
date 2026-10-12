@@ -35,7 +35,9 @@ class handler(BaseHTTPRequestHandler):
         prompt = ("Write a short email from Vikram, founder of %s, to %s (%s).\n%s\n"
                   "Their recent public activity (use ONLY this, cite the first item naturally in the first line):\n%s\n"
                   "Vikram's own context (private, may inform tone; never quote it): status=%s; history=%s; notes=%s\n"
-                  "Rules: under 110 words, plain and specific, no flattery clichés. NEVER invent facts about Haulr: no traction, "
+                  "Rules: under 110 words, plain and specific, no flattery clichés. Never argue 'you invested in X, so you'll like "
+                  "us'; connect their specific signal to Haulr honestly (a complement, their stated thesis, or their active "
+                  "early-stage investing). NEVER invent facts about Haulr: no traction, "
                   "customers, growth, revenue or stage claims; instead write the placeholder [your one-line traction here] "
                   "for Vikram to fill in. Don't repeat his private notes word for word. One clear ask (a 20-minute call). Output: 'Subject: ...' line, blank line, body, sign-off 'Vikram'."
                   % (_engine.COMPANY, vc["name"], vc["firm"],
@@ -44,7 +46,7 @@ class handler(BaseHTTPRequestHandler):
         try:
             # drafts use the Lite models first, saving the main model's small free daily quota for judging
             text, _ = _gemini.generate(prompt, temperature=0.6, timeout=50,
-                                       models=["gemini-3.5-flash-lite", "gemini-3.1-flash-lite", "gemini-3.5-flash"])
+                                       models=_gemini.DRAFT_MODELS)
         except Exception as e:
             return _http.send(self, {"error": "Gemini is busy, try again in a minute (%s)" % str(e)[:80]}, 503)
         try:

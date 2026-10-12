@@ -90,3 +90,6 @@ create table if not exists drafts (
 
 -- at most one run at a time, enforced by the database (no race between "check" and "insert")
 create unique index if not exists one_running_run on runs ((status)) where status = 'running';
+
+-- what a signal means for Haulr: thesis | deploying | complement | overlap | visible | none
+alter table signals add column if not exists angle text;

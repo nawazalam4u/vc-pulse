@@ -28,6 +28,14 @@ function toast(msg, ms = 3200) {
 
 // ---------- helpers
 const KIND = { invested: "💸 Invested", wrote: "✍️ Wrote", said: "🎙 Spoke", appeared: "🎤 Event", mentioned: "📰 In news", other: "• Other" };
+const ANGLE = {
+  thesis: { e: "🎯", t: "Thesis", d: "They say they want this space: an open invitation" },
+  deploying: { e: "🚀", t: "Deploying", d: "Writing new early-stage cheques right now" },
+  complement: { e: "🤝", t: "Complement", d: "Backed an adjacent, non-competing company" },
+  visible: { e: "👀", t: "Visible", d: "Publicly active on other topics: reachable" },
+  overlap: { e: "⚠️", t: "Overlap", d: "Backed a direct competitor: usually negative" },
+};
+const angleChip = (s) => { const a = ANGLE[s.angle]; return a ? `<span class="chip ang-${esc(s.angle)}" title="${esc(a.d)}">${a.e} ${a.t} · ${fmtDate(s.published)}</span>` : `<span class="chip ${esc(s.kind)}">${KIND[s.kind] || "•"} · ${fmtDate(s.published)}</span>`; };
 const ORIGIN = { news: "News", firm_news: "Firm deals", blog: "Their blog", podcast: "Podcast", search: "Web search" };
 const LANES = [
   { id: "hot", title: "🔥 Reach out this week", sub: "Fresh, on-topic signal + good timing", match: (a) => a === "REACH OUT" || a === "NUDGE" },
@@ -84,7 +92,7 @@ async function load(flashIds = []) {
   $("#addBtn").hidden = !S.can_edit;
   $("#editHint").textContent = S.can_edit ? "Editor mode: click your blue cells to edit. Changes save to the database instantly through the founder login."
     : "Public demo, read-only. Vikram's notes are illustrative and visible so reviewers can verify they never change; in production they sit behind his login. He edits them through his private link.";
-  renderHeader(); renderBoard(); renderFeed(); renderTable(flashIds); renderRuns(); renderGuardRuns();
+  renderHeader(); renderMix(); renderBoard(); renderFeed(); renderTable(flashIds); renderRuns(); renderGuardRuns();
 }
 
 function renderHeader() {
@@ -104,9 +112,7 @@ function renderHeader() {
     + ` · next auto run ${nr.toLocaleDateString("en-IN", { weekday: "short", day: "numeric", month: "short" })}, 7:00 IST`;
 }
 
-function sigChip(s) {
-  return `<span class="chip ${esc(s.kind)}" title="${esc(s.title)}">${KIND[s.kind] || "•"} · ${fmtDate(s.published)}</span>`;
-}
+function sigChip(s) { return angleChip(s); }
 function deltaBadge(v) {
   const c = S.changes[v.id];
   if (!c || c.new_score == null) return "";
@@ -131,12 +137,19 @@ function renderBoard() {
   }).join("");
 }
 
+function renderMix() {
+  const c = { thesis: 0, deploying: 0, complement: 0, visible: 0, overlap: 0 };
+  S.vcs.forEach((v) => (v.signals || []).forEach((s) => { if (c[s.angle] !== undefined) c[s.angle]++; }));
+  const tot = Object.values(c).reduce((a, b) => a + b, 0) || 1;
+  $("#mix").innerHTML = `<div class="mixbar">${Object.entries(c).filter(([, n]) => n).map(([k, n]) => `<i class="ang-${k}" style="flex:${n}" title="${ANGLE[k].t}: ${n}"></i>`).join("")}</div>
+    <div class="mixleg">${Object.entries(c).map(([k, n]) => `<span title="${esc(ANGLE[k].d)}"><b>${ANGLE[k].e} ${n}</b> ${ANGLE[k].t}</span>`).join("")}</div>`;
+}
 function renderFeed() {
   const all = [];
   S.vcs.forEach((v) => (v.signals || []).forEach((s) => all.push({ ...s, vc: v })));
   all.sort((a, b) => String(b.published).localeCompare(String(a.published)) || b.points - a.points);
   $("#feed").innerHTML = all.slice(0, 14).map((s) => `<a class="fitem" href="${safeUrl(s.url)}" target="_blank" rel="noopener">
-      <span class="fdate">${fmtDate(s.published)}</span><span class="chip ${esc(s.kind)}">${KIND[s.kind] || "•"}</span>
+      <span class="fdate">${fmtDate(s.published)}</span>${ANGLE[s.angle] ? `<span class="chip ang-${esc(s.angle)}">${ANGLE[s.angle].e} ${ANGLE[s.angle].t}</span>` : `<span class="chip ${esc(s.kind)}">${KIND[s.kind] || "•"}</span>`}
       <span class="ftext"><b>${esc(s.vc.name)}</b> <small>${esc(s.vc.firm)}</small><br>${esc(s.title)}</span>
       <span class="fsrc">${esc(s.source)} ↗</span></a>`).join("") || `<div class="empty">No signals yet. Press Refresh.</div>`;
   $("#feedCount").textContent = all.length;
@@ -262,9 +275,9 @@ async function openVc(id) {
     <div class="box"><h4>🧮 Why ${v.follow_up_score ?? "–"}/100: the score maths</h4>
       ${d.score_now !== v.follow_up_score ? `<p class="meta" style="color:var(--ink2);margin:0 0 6px">Recomputed with today's date and your current status: <b>${d.score_now}</b>. The table updates on the next run.</p>` : ""}
       ${d.breakdown.map(([label, pts]) => `<div class="bar"><div class="t">${esc(label)}<div class="fill ${pts < 0 ? "neg" : ""}" style="width:${(Math.abs(pts) / max) * 100}%"></div></div><b>${pts > 0 ? "+" : ""}${pts}</b></div>`).join("")}
-      <details style="margin-top:8px"><summary>How each signal is worth points</summary><p style="font-size:12.5px;color:var(--ink2)">points = type weight (invested 40, wrote 34, spoke 30, event 26, in news 14) × topic fit (logistics 1.0, adjacent B2B 0.6, general 0.3) × who acted (the partner 1.0, only their firm 0.85) × freshness (full for 7 days, fading to 0.4 at day 30). Best signal + 40% of the 2nd + 20% of the 3rd, capped at 70. Then thesis fit (up to +15) and timing from <i>your</i> status and last-contact date (−30 to +10; followed up under 14 days ago = WAIT). Gemini judges what each item is; plain code does the arithmetic, so the same evidence always gives the same score.</p></details></div>
+      <details style="margin-top:8px"><summary>How each signal is worth points</summary><p style="font-size:12.5px;color:var(--ink2)">A signal is weighted by what it <b>means</b> for Haulr, not just by what happened: 🎯 thesis 42 (they say they want this space) · 🚀 deploying 34 (new early cheques now) · 🤝 complement 26 (backed an adjacent, non-competing company) · 👀 visible 10 (reachable) · ⚠️ overlap 0 and −15 (a direct competitor makes them <i>less</i> likely to invest). Then × topic fit (logistics 1.0, adjacent 0.6, general 0.3) × who acted (the partner 1.0, their firm 0.85) × freshness (full for 7 days, fading to 0.4 at day 30). Best signal + 40% of the 2nd + 20% of the 3rd, capped at 70. Then thesis fit (up to +15), India-based +5, and timing from <i>your</i> status and last-contact date (−30 to +10; followed up under 14 days ago = WAIT). Gemini judges what each item is; plain code does the arithmetic, so the same evidence always gives the same score.</p></details></div>
     <div class="box"><h4>🔎 Evidence (last 30 days): ${fresh.length} signal${fresh.length === 1 ? "" : "s"}</h4>
-      ${fresh.length ? fresh.map((s) => `<div class="evi"><div class="d">${fmtDate(s.published)}<br><span class="chip ${esc(s.kind)}" style="margin-top:4px">${KIND[s.kind] || ""}</span></div><div><a class="t" href="${safeUrl(s.url)}" target="_blank" rel="noopener">${esc(s.title)} ↗</a><div class="s">${esc(s.summary || "")}</div><div class="s">${esc(s.source)} · via ${ORIGIN[s.origin] || s.origin} · fit ${s.relevance}/3 · ${(+s.points).toFixed(1)} pts</div></div></div>`).join("")
+      ${fresh.length ? fresh.map((s) => `<div class="evi"><div class="d">${fmtDate(s.published)}<br><span class="chip ${esc(s.kind)}" style="margin-top:4px">${KIND[s.kind] || ""}</span></div><div><a class="t" href="${safeUrl(s.url)}" target="_blank" rel="noopener">${esc(s.title)} ↗</a><div class="s">${esc(s.summary || "")}</div>${ANGLE[s.angle] ? `<div style="margin-top:4px">${angleChip(s)} <span class="s">${esc(ANGLE[s.angle].d)}</span></div>` : ""}<div class="s">${esc(s.source)} · via ${ORIGIN[s.origin] || s.origin} · fit ${s.relevance}/3 · ${(+s.points).toFixed(1)} pts</div></div></div>`).join("")
         : `<p style="margin:0;color:var(--ink2)">No qualifying public activity in the last 30 days. That's useful too: don't spend energy here this week.</p>`}
       ${also.length ? `<details style="margin-top:8px"><summary>Same events, other outlets: ${also.length} (counted once)</summary>${also.slice(0, 20).map((s) => `<div class="evi rej"><div class="d">${fmtDate(s.published)}</div><div><a href="${safeUrl(s.url)}" target="_blank" rel="noopener">${esc(s.title)}</a><div class="s">${esc(s.source)}</div></div></div>`).join("")}</details>` : ""}
       ${rej.length ? `<details style="margin-top:8px"><summary>Filtered out: ${rej.length} item${rej.length === 1 ? "" : "s"} (Gemini or our checks: not clearly about them, or not relevant)</summary>${rej.slice(0, 25).map((s) => `<div class="evi rej"><div class="d">${fmtDate(s.published)}</div><div><a href="${safeUrl(s.url)}" target="_blank" rel="noopener">${esc(s.title)}</a><div class="s">${esc(s.source)} · via ${ORIGIN[s.origin] || s.origin}</div></div></div>`).join("")}</details>` : ""}
@@ -397,7 +410,7 @@ async function runNow() {
       $("#mTitle").textContent = `Scanning… ${done}/${ids.length}`;
     }
   };
-  await Promise.all([worker(), worker(), worker()]);  // 5 batches of 10, 3 at a time
+  await Promise.all([worker(), worker(), worker(), worker(), worker()]);  // all 5 batches of 10 at once
   try {
     const f = await api("/api/run", { method: "POST", body: JSON.stringify({ action: "finish", run: start.run, token: start.token }) });
     const safe = f.run.notes_hash_before === f.run.notes_hash_after;

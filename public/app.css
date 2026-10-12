@@ -227,3 +227,27 @@ code { font-family: ui-monospace, Menlo, monospace; font-size: 12px; background:
 .fsrc { font-size: 12px; color: var(--violet); white-space: nowrap; }
 .srcrow { grid-column: 1 / -1; display: flex; flex-wrap: wrap; gap: 6px 16px; font-size: 12px; color: var(--ink2); border-top: 1px dashed var(--line); padding-top: 8px; }
 @media (max-width: 680px) { .fitem { grid-template-columns: 50px 1fr; } .fitem .chip, .fsrc { display: none; } }
+
+/* signal meanings */
+.ang-thesis { background: linear-gradient(135deg, #f1ebff, #ffe9f3); color: #6b2bd9; }
+.ang-deploying { background: #e5f8ee; color: #0d8a55; }
+.ang-complement { background: #e7f0ff; color: #1f5fc6; }
+.ang-visible { background: #f0f1f6; color: #5d6177; }
+.ang-overlap { background: #ffe8ea; color: #c62f45; }
+.judge { margin: 16px 0 4px; background: #fff; border: 1px solid rgba(20,18,43,.05); border-radius: 18px; box-shadow: var(--shadow); padding: 14px 16px; }
+.jtitle { display: flex; gap: 12px; align-items: baseline; flex-wrap: wrap; margin-bottom: 10px; }
+.jtitle b { font-size: 15px; } .jtitle span { color: var(--ink2); font-size: 13px; }
+.jgrid { display: grid; grid-template-columns: repeat(5, 1fr); gap: 8px; }
+.jt { border-radius: 12px; padding: 9px 11px; transition: transform .15s ease; }
+.jt:hover { transform: translateY(-2px); }
+.jt b { display: block; font-size: 13.5px; } .jt span { display: block; font-size: 12px; line-height: 1.35; opacity: .9; margin-top: 2px; color: var(--ink2); }
+.jmix { display: flex; align-items: center; gap: 12px; margin-top: 12px; flex-wrap: wrap; }
+.jmixl { font-size: 12px; font-weight: 700; color: var(--ink2); text-transform: uppercase; letter-spacing: .04em; }
+#mix { flex: 1; min-width: 260px; }
+.mixbar { display: flex; height: 12px; border-radius: 8px; overflow: hidden; gap: 2px; background: #f1f0f7; }
+.mixbar i { display: block; min-width: 6px; transition: flex .5s ease; }
+.mixbar i.ang-thesis { background: linear-gradient(90deg, #8b5cf6, #ec4899); } .mixbar i.ang-deploying { background: #22c55e; }
+.mixbar i.ang-complement { background: #3b82f6; } .mixbar i.ang-visible { background: #c3c6d4; } .mixbar i.ang-overlap { background: #ef4444; }
+.mixleg { display: flex; gap: 14px; flex-wrap: wrap; font-size: 12px; color: var(--ink2); margin-top: 6px; }
+@media (max-width: 900px) { .jgrid { grid-template-columns: 1fr 1fr; } }
+@media (max-width: 520px) { .jgrid { grid-template-columns: 1fr; } }

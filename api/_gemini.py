@@ -1,4 +1,9 @@
-"""Gemini Flash over plain HTTPS. JSON-only answers, model fallback and polite retries on rate limits."""
+"""Gemini Flash through the institute's OpenRouter gateway (OPENROUTER_API_KEY).
+
+Rules (from the course's key sheet): only google/ models; Google's own infrastructure serves every request
+(provider.only = google-vertex / google-ai-studio, no fallbacks to other vendors); key only in an environment
+variable; retry 429/5xx with backoff up to 3 times; stop on 402 (out of credits).
+"""
 import json
 import os
 import re
@@ -6,70 +11,91 @@ import time
 import urllib.error
 import urllib.request
 
+URL = "https://openrouter.ai/api/v1/chat/completions"
 MODELS = [m.strip() for m in os.environ.get(
-    "GEMINI_MODEL", "gemini-3.5-flash,gemini-3.5-flash-lite,gemini-3.1-flash-lite").split(",") if m.strip()]
-URL = "https://generativelanguage.googleapis.com/v1beta/models/%s:generateContent"
+    "GEMINI_MODEL", "google/gemini-3.7-flash,google/gemini-3.8-flash,google/gemini-3.5-flash-lite").split(",") if m.strip()]
+DRAFT_MODELS = ["google/gemini-3.5-flash-lite", "google/gemini-3.7-flash"]  # cheapest model that writes a good email
+PROVIDER = {"only": ["google-vertex", "google-ai-studio"], "allow_fallbacks": False}
 LAST = {"model": None}
-EXHAUSTED = set()   # models that hit their free daily limit: skip them for the rest of this process
-USED = {}           # model -> successful calls (stored in the run log so you can see which model judged)
-# Gemini 3.5 Flash "thinks" before answering; low keeps it careful but ~3x faster (25s vs 80s for 5 investors)
-THINKING = {"gemini-3.5-flash": "low"}
+EXHAUSTED = set()   # kept for compatibility (OpenRouter has no per-model daily cap on this key)
+USED = {}           # model -> successful calls (stored in the run log)
+COST = {"usd": 0.0, "tokens": 0}  # summed from OpenRouter's usage field
+
+
+class OutOfCredits(RuntimeError):
+    pass
 
 
 def configured():
-    return bool(os.environ.get("GEMINI_API_KEY"))
+    return bool(os.environ.get("OPENROUTER_API_KEY"))
 
 
-def _call(model, body, timeout):
-    if model in THINKING:
-        body = dict(body, generationConfig=dict(body["generationConfig"], thinkingConfig={"thinkingLevel": THINKING[model]}))
-    req = urllib.request.Request(URL % model, data=json.dumps(body).encode(), method="POST",
-                                 headers={"content-type": "application/json",
-                                          "x-goog-api-key": os.environ["GEMINI_API_KEY"]})
+def _schema(s):
+    """Gemini-style schema (OBJECT/ARRAY/STRING) -> strict JSON Schema for OpenRouter structured outputs."""
+    if isinstance(s, dict):
+        out = {}
+        for k, v in s.items():
+            out[k] = v.lower() if k == "type" and isinstance(v, str) else _schema(v)
+        if out.get("type") == "object":
+            out["additionalProperties"] = False
+            out.setdefault("required", list(out.get("properties", {})))
+        return out
+    if isinstance(s, list):
+        return [_schema(x) for x in s]
+    return s
+
+
+def _call(body, timeout):
+    req = urllib.request.Request(URL, data=json.dumps(body).encode(), method="POST", headers={
+        "Authorization": "Bearer " + os.environ["OPENROUTER_API_KEY"], "Content-Type": "application/json",
+        "HTTP-Referer": "https://vc-pulse-lime.vercel.app", "X-Title": "VC Pulse"})
     with urllib.request.urlopen(req, timeout=timeout) as r:
         return json.loads(r.read().decode())
 
 
-def _text(resp):
-    c = (resp.get("candidates") or [{}])[0]
-    return "".join(p.get("text", "") for p in (c.get("content") or {}).get("parts", []) if not p.get("thought"))
-
-
-def generate(prompt, schema=None, system=None, temperature=0.2, timeout=60, tools=None, models=None):
-    """Returns (text, raw_response). Tries each model; waits and retries once on 429/503."""
-    body = {"contents": [{"role": "user", "parts": [{"text": prompt}]}],
-            "generationConfig": {"temperature": temperature}}
-    if system:
-        body["systemInstruction"] = {"parts": [{"text": system}]}
-    if schema:
-        body["generationConfig"]["responseMimeType"] = "application/json"
-        body["generationConfig"]["responseSchema"] = schema
+def generate(prompt, schema=None, system=None, temperature=0.2, timeout=90, tools=None, models=None):
+    """Returns (text, raw_response). Tries each Google model in turn; backoff retries on 429/5xx."""
     if tools:
-        body["tools"] = tools
+        raise RuntimeError("Google Search grounding is not available through this gateway")
+    messages = ([{"role": "system", "content": system}] if system else []) + [{"role": "user", "content": prompt}]
     last = None
     for model in models or MODELS:
-        if model in EXHAUSTED:
-            continue
-        for attempt in range(2):
+        body = {"model": model, "messages": messages, "temperature": temperature, "provider": PROVIDER,
+                "reasoning": {"effort": "low"}, "usage": {"include": True}}
+        if schema:
+            body["response_format"] = {"type": "json_schema",
+                                       "json_schema": {"name": "result", "strict": True, "schema": _schema(schema)}}
+        for attempt in range(4):  # first try + 3 retries
             try:
-                resp = _call(model, body, timeout)
+                resp = _call(body, timeout)
+                if resp.get("error"):
+                    raise RuntimeError("%s: %s" % (model, str(resp["error"])[:160]))
+                text = ((resp.get("choices") or [{}])[0].get("message") or {}).get("content") or ""
+                if not text.strip():
+                    raise RuntimeError("%s: empty reply" % model)
+                u = resp.get("usage") or {}
+                COST["usd"] += float(u.get("cost") or 0)
+                COST["tokens"] += int(u.get("total_tokens") or 0)
                 LAST["model"] = model
                 USED[model] = USED.get(model, 0) + 1
-                return _text(resp), resp
+                return text, resp
             except urllib.error.HTTPError as e:
-                detail = e.read().decode()
-                last = "%s %s: %s" % (model, e.code, detail[:160])
-                if e.code == 429 and "PerDay" in detail:
-                    EXHAUSTED.add(model)  # free daily quota used up: asking again today is pointless
-                    break
-                if e.code in (429, 500, 503) and attempt == 0 and not tools:
-                    time.sleep(5)
+                detail = e.read().decode()[:200]
+                last = "%s %s: %s" % (model, e.code, detail)
+                if e.code == 402:
+                    raise OutOfCredits("OpenRouter credits are used up (402). Top up the key, then run again.")
+                if e.code in (429, 500, 502, 503, 504) and attempt < 3:
+                    time.sleep(2 ** attempt * 2)  # 2s, 4s, 8s
                     continue
-                break  # 400/403/404 or second failure: next model
-            except Exception as e:  # timeout, network
-                last = "%s: %s" % (model, e)
+                break  # 400/401/403/404: try the next model
+            except OutOfCredits:
+                raise
+            except Exception as e:  # timeout, network, empty reply
+                last = "%s: %s" % (model, str(e)[:160])
+                if attempt < 1:
+                    continue
                 break
-    raise RuntimeError(last or "all Gemini Flash models are at their free daily limit")
+    raise RuntimeError(last or "no Google model available on OpenRouter")
 
 
 def generate_json(prompt, schema, **kw):
