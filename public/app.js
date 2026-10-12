@@ -84,7 +84,7 @@ async function load(flashIds = []) {
   $("#addBtn").hidden = !S.can_edit;
   $("#editHint").textContent = S.can_edit ? "Editor mode: click your blue cells to edit. Changes save to the database instantly through the founder login."
     : "Public demo, read-only. Vikram's notes are illustrative and visible so reviewers can verify they never change; in production they sit behind his login. He edits them through his private link.";
-  renderHeader(); renderBoard(); renderTable(flashIds); renderRuns(); renderGuardRuns();
+  renderHeader(); renderBoard(); renderFeed(); renderTable(flashIds); renderRuns(); renderGuardRuns();
 }
 
 function renderHeader() {
@@ -123,11 +123,23 @@ function renderBoard() {
       ${show.map((v) => `<div class="card ${L.id}" data-id="${v.id}" tabindex="0" role="button" aria-label="${esc(v.name)}, ${esc(v.firm)}, score ${v.follow_up_score ?? "not scored"}">
         <div class="hd">${ring(v.follow_up_score)}<div style="min-width:0"><div class="nm">${esc(v.name)} ${deltaBadge(v)}</div><div class="fm">${esc(v.firm)}</div></div></div>
         <div class="act">${esc(actText(v.recommended_action))}</div>
+        ${(L.id === "hot" || L.id === "warm") && (v.signal_summary || "").includes("Why it matters for Haulr: ") ? `<div class="whyline">💡 ${esc(v.signal_summary.split("Why it matters for Haulr: ")[1])}</div>` : ""}
         ${v.signals?.length ? `<div class="ev">${v.signals.slice(0, 3).map(sigChip).join("")}</div>` : ""}
       </div>`).join("") || `<div class="empty" style="padding:14px">Nobody here right now.</div>`}
       ${items.length > 8 ? `<button class="more" data-lane="${L.id}">${openLanes.has(L.id) ? "Show fewer" : `Show all ${items.length}`}</button>` : ""}
     </div>`;
   }).join("");
+}
+
+function renderFeed() {
+  const all = [];
+  S.vcs.forEach((v) => (v.signals || []).forEach((s) => all.push({ ...s, vc: v })));
+  all.sort((a, b) => String(b.published).localeCompare(String(a.published)) || b.points - a.points);
+  $("#feed").innerHTML = all.slice(0, 14).map((s) => `<a class="fitem" href="${safeUrl(s.url)}" target="_blank" rel="noopener">
+      <span class="fdate">${fmtDate(s.published)}</span><span class="chip ${esc(s.kind)}">${KIND[s.kind] || "•"}</span>
+      <span class="ftext"><b>${esc(s.vc.name)}</b> <small>${esc(s.vc.firm)}</small><br>${esc(s.title)}</span>
+      <span class="fsrc">${esc(s.source)} ↗</span></a>`).join("") || `<div class="empty">No signals yet. Press Refresh.</div>`;
+  $("#feedCount").textContent = all.length;
 }
 
 // ---------- table
@@ -244,7 +256,9 @@ async function openVc(id) {
       <div style="font-size:15px">${esc(actText(v.recommended_action))}</div>
       <div style="margin-top:10px;display:flex;gap:8px;flex-wrap:wrap"><button class="btn primary sm" id="draftBtn" ${fresh.length ? "" : "disabled title='No fresh signal = no honest hook'"}>✉️ Draft the email with Gemini</button></div>
       <div id="draftOut"></div></div>
-    <div class="box"><h4>⚡ Signal summary</h4><div>${esc(v.signal_summary || "–")}</div></div>
+    ${(() => { const [what, why] = String(v.signal_summary || "–").split(" Why it matters for Haulr: ");
+      return `<div class="box"><h4>⚡ What they did (last 30 days)</h4><div>${esc(what)}</div></div>` +
+        (why ? `<div class="box why"><h4>💡 Why it matters for Haulr <span class="tag WARM" style="margin-left:auto">Gemini Flash</span></h4><div>${esc(why)}</div></div>` : ""); })()}
     <div class="box"><h4>🧮 Why ${v.follow_up_score ?? "–"}/100: the score maths</h4>
       ${d.score_now !== v.follow_up_score ? `<p class="meta" style="color:var(--ink2);margin:0 0 6px">Recomputed with today's date and your current status: <b>${d.score_now}</b>. The table updates on the next run.</p>` : ""}
       ${d.breakdown.map(([label, pts]) => `<div class="bar"><div class="t">${esc(label)}<div class="fill ${pts < 0 ? "neg" : ""}" style="width:${(Math.abs(pts) / max) * 100}%"></div></div><b>${pts > 0 ? "+" : ""}${pts}</b></div>`).join("")}
@@ -302,7 +316,8 @@ function renderRuns() {
     return `<div class="run"><div><b>Run #${r.id}</b><span>${new Date(r.started_at).toLocaleString("en-IN", { weekday: "short", day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" })} · ${r.trigger === "cron" ? "⏰ auto" : "👆 manual"} ${dur}</span></div>
       <div><b>${r.vcs_done}/${r.vcs_total}</b><span>investors · AI: ${esc(modelsOf(r))}</span></div><div><b>${r.items_scanned}</b><span>items checked</span></div>
       <div><b>${r.signals_kept}</b><span>signals kept</span></div><div><b style="color:var(--hot)">${r.hot_count}</b><span>reach out</span></div>
-      <div><b style="color:var(--park)">${r.quiet_count}</b><span>quiet</span></div><div>${safe}</div></div>`;
+      <div><b style="color:var(--park)">${r.quiet_count}</b><span>quiet</span></div><div>${safe}</div>
+      ${r.sources && r.sources.per_source ? `<div class="srcrow">Live sources this run: ${Object.entries(r.sources.per_source).map(([k, [n, kept]]) => `<span>${esc(ORIGIN[k] || k)} <b>${n}</b> items → ${kept} kept</span>`).join("")}</div>` : ""}</div>`;
   }).join("") || `<div class="empty">No runs yet.</div>`;
 }
 function renderGuardRuns() {

@@ -71,7 +71,8 @@ class handler(BaseHTTPRequestHandler):
         live = [s for s in sig if s["about_vc"] and not s.get("dup") and float(s["points"] or 0) >= 4 and s["published"] >= _sources.cutoff().isoformat()]
         for s in live:
             s["points"] = float(s["points"])
-        total, breakdown, strength, days = _engine.score(vc, live, today)
+        m = re.search(r"They just backed (.+?), which overlaps", vc.get("recommended_action") or "")
+        total, breakdown, strength, days = _engine.score(vc, live, today, m.group(1) if m else "")
         _http.send(self, {"vc": vc, "signals": sig, "breakdown": breakdown, "score_now": total, "history": hist,
                           "weights": {"kind": _engine.KIND_W, "relevance": _engine.REL_M, "actor": _engine.ACTOR_M}})
 

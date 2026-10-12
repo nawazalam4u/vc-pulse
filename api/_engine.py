@@ -48,8 +48,10 @@ JUDGE_SCHEMA = {
                 "required": ["i", "actor", "kind", "relevance", "event", "summary"]}},
             "overall": {"type": "STRING"},
             "hook": {"type": "STRING"},
-            "hook_item": {"type": "INTEGER"}},
-        "required": ["vc", "items", "overall", "hook", "hook_item"]}}
+            "hook_item": {"type": "INTEGER"},
+            "why": {"type": "STRING"},
+            "conflict": {"type": "STRING"}},
+        "required": ["vc", "items", "overall", "hook", "hook_item", "why", "conflict"]}}
 
 JUDGE_SYSTEM = """You are the research analyst for a founder raising a Seed round. His company: %s.
 For each investor you get a numbered list of public items (headline, source, date) found in the last 30 days.
@@ -81,7 +83,14 @@ overall: <= 35 words: what this investor has been doing in the last 30 days that
 hook:   <= 22 words, written to THIS investor about THEIR OWN act (an item with actor person/firm): the specific,
         honest opening line for the founder's email, e.g. "Saw Peak XV raise Surge checks to $5M on 29 Sep."
         Never mention other people. Return "" if nothing qualifies.
-hook_item: the [number] of the item the hook is based on (-1 if hook is "").""" % COMPANY
+hook_item: the [number] of the item the hook is based on (-1 if hook is "").
+why:    <= 32 words: WHY this activity matters to the founder's company right now, in plain English. Connect the
+        investor's act to Haulr specifically (their thesis, the space, stage, what it signals about their appetite,
+        what angle it gives the pitch). Example: "8VC just backed logistics software, so the category is top of mind;
+        Haulr is the India/shipper-side version, a complement rather than a competitor." Return "" if nothing qualifies.
+conflict: if a qualifying item shows this investor/firm just backed a DIRECT competitor of Haulr (freight visibility,
+        carrier management or dispatch software for shippers), the competitor's name exactly as written in the item;
+        otherwise "". Adjacent logistics companies (defence logistics, robotics, warehousing hardware) are NOT conflicts.""" % COMPANY
 
 
 def _iso(d):
@@ -126,7 +135,9 @@ def judge(batch):
             res[int(row["vc"])] = {"items": {int(x["i"]): x for x in row.get("items", [])},
                                    "overall": (row.get("overall") or "").strip(),
                                    "hook": (row.get("hook") or "").strip(),
-                                   "hook_item": row.get("hook_item", -1)}
+                                   "hook_item": row.get("hook_item", -1),
+                                   "why": (row.get("why") or "").strip(),
+                                   "conflict": (row.get("conflict") or "").strip()}
         except (KeyError, TypeError, ValueError):
             continue
     return res
@@ -218,7 +229,7 @@ def next_run_day(today):
     return today + dt.timedelta(days=3)
 
 
-def score(vc, signals, today):
+def score(vc, signals, today, conflict=""):
     """Returns (score 0-100, action text, breakdown list). Pure function: same inputs, same answer."""
     breakdown = []
     pts = sorted((s["points"] for s in signals), reverse=True)
@@ -253,7 +264,11 @@ def score(vc, signals, today):
         timing = 10
         breakdown.append(["Not contacted yet + timely hook for a first email", timing])
 
-    total = int(round(max(0, min(100, strength + fit + timing))))
+    penalty = 0
+    if conflict:
+        penalty = -15
+        breakdown.append(["Just backed %s, a likely Haulr competitor" % conflict[:40], penalty])
+    total = int(round(max(0, min(100, strength + fit + timing + penalty))))
     return total, breakdown, strength, days
 
 
@@ -383,7 +398,10 @@ def process(run_id, vc_ids, workers=8, judge_size=10):
             newest = max(_d(s["published"]) for s in kept)
             last_any = max(last_any, newest) if last_any else newest
 
-        total, breakdown, strength, days = score(vc, [k for k in kept if not k["dup"]], today)
+        conflict = (v or {}).get("conflict", "") if kept else ""
+        if conflict and not any(conflict.lower() in (k["title"] + " " + k.get("snippet", "")).lower() for k in kept):
+            conflict = ""  # code check: the competitor must be named in evidence we kept
+        total, breakdown, strength, days = score(vc, [k for k in kept if not k["dup"]], today, conflict)
         mention = None
         if strength <= 0 and judged:
             try:
@@ -401,9 +419,14 @@ def process(run_id, vc_ids, workers=8, judge_size=10):
         hook = ((v or {}).get("hook", "") if hook_ok else fallback_hook(vc, counted)).strip().rstrip(".… ")
         hook = hook + "." if hook else ""
         action = action_for(vc, total, strength, days, hook, kept[0] if kept else None, today, last_any, mention)
+        if conflict:
+            action += " ⚠ They just backed %s, which overlaps with Haulr: lead with how you're different, or skip." % conflict
         if kept:
             summary = (v or {}).get("overall") or "; ".join(
                 "%s: %s" % (short_date(s["published"]), s["summary"]) for s in kept[:2])
+            why = (v or {}).get("why", "")
+            if why and strength > 0:
+                summary = summary.rstrip(". ") + ". Why it matters for Haulr: " + why
         else:
             checked = ["news", "firm deals"] + (["their blog"] if vc.get("feed_url") else []) + ["podcasts"] + (
                 ["web search"] if _sources.SEARCH_STATE["available"] else [])
@@ -436,7 +459,7 @@ def process(run_id, vc_ids, workers=8, judge_size=10):
         # THE ONLY WRITE TO VIKRAM'S TABLE: four signal columns, nothing else (and the login can't do more anyway).
         stmts.append(("update vcs set last_signal_date = $2::date, signal_summary = $3, follow_up_score = $4, "
                       "recommended_action = $5 where id = $1",
-                      [vc["id"], _iso(last_any), summary[:600], total, action[:400]]))
+                      [vc["id"], _iso(last_any), summary[:900], total, action[:500]]))
         try:
             _db.tx(stmts)
         except Exception as e:  # one investor's write failing must not stop the other nine
@@ -457,13 +480,19 @@ def process(run_id, vc_ids, workers=8, judge_size=10):
 
 def finish_run(run_id):
     fp = _db.q(FINGERPRINT)[0]
+    per = _db.q("select origin, count(*) as n, count(*) filter (where about_vc and not coalesce(dup, false) and points >= 4) as kept "
+                "from signals where run_id = $1 group by origin", [run_id])
+    errs = _db.q("select count(*) as n from jsonb_array_elements(coalesce((select log from runs where id = $1), '[]'::jsonb))",
+                 [run_id])[0]["n"]
     _db.q("update runs set status = case when vcs_done >= vcs_total then 'done' else 'partial' end, "
           "finished_at = now(), notes_hash_after = $2, "
           "hot_count = (select count(*) from vcs where recommended_action like 'REACH OUT%' or recommended_action like 'NUDGE%'), "
           "quiet_count = (select count(*) from vcs where recommended_action like 'PARK%' or recommended_action like 'LOW%'), "
           "sources = coalesce(sources, '{}'::jsonb) || $3::jsonb where id = $1",
           [run_id, fp["h"], json.dumps({"gemini_search": _sources.SEARCH_STATE["available"],
-                                        "model": _gemini.LAST["model"], "models_used": _gemini.USED})])
+                                        "model": _gemini.LAST["model"], "models_used": _gemini.USED,
+                                        "per_source": {r["origin"]: [int(r["n"]), int(r["kept"])] for r in per},
+                                        "log_entries": int(errs)})])
     return _db.q("select * from runs where id = $1", [run_id])[0]
 
 

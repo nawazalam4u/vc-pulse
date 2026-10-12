@@ -75,6 +75,11 @@ check("fallback hook for a firm act names the firm, not 'your'",
       e.fallback_hook({"firm": "Point Nine"}, [{"actor": "firm", "points": 9, "kind": "invested", "title": "Procuros raises EUR 20M",
                                                 "published": T}]).startswith("Saw Point Nine's deal coverage"))
 
+base = e.score(LOGI, [sig("invested", 3, 2)], T)[0]
+conf = e.score(LOGI, [sig("invested", 3, 2)], T, "FreightCo")
+check("backing a direct competitor lowers the score by 15 and says why",
+      conf[0] == base - 15 and any("competitor" in b[0] for b in conf[1]))
+
 for n, ok in checks:
     print("PASS" if ok else "FAIL", "-", n)
 print("%d/%d passed" % (sum(ok for _, ok in checks), len(checks)))

@@ -217,3 +217,13 @@ code { font-family: ui-monospace, Menlo, monospace; font-size: 12px; background:
 @media (max-width: 900px) { .how { grid-template-columns: 1fr 1fr; } .step:nth-child(3)::before { display: none; } }
 @media (max-width: 520px) { .how { grid-template-columns: 1fr; } .step + .step::before { left: 16px; right: 16px; top: 0; bottom: auto; width: auto; height: 1px; } }
 @media (prefers-reduced-motion: reduce) { *, *::before { animation: none !important; transition: none !important; } }
+
+.whyline { margin-top: 7px; font-size: 12.5px; color: #5b4300; background: #fff8e6; border-radius: 8px; padding: 6px 8px; line-height: 1.4; }
+.box.why { background: linear-gradient(135deg, #fffaf0, #fff); border-color: #f5d27a; }
+.feedbox { background: #fff; border: 1px solid rgba(20,18,43,.05); border-radius: 18px; box-shadow: var(--shadow); overflow: hidden; }
+.fitem { display: grid; grid-template-columns: 58px 120px 1fr auto; gap: 12px; align-items: center; padding: 10px 16px; border-top: 1px solid var(--line); color: var(--ink); }
+.fitem:first-child { border-top: 0; } .fitem:hover { background: #faf9ff; text-decoration: none; }
+.fdate { font-weight: 700; font-size: 12.5px; color: var(--ink2); } .ftext { font-size: 13px; line-height: 1.35; } .ftext small { color: var(--ink2); }
+.fsrc { font-size: 12px; color: var(--violet); white-space: nowrap; }
+.srcrow { grid-column: 1 / -1; display: flex; flex-wrap: wrap; gap: 6px 16px; font-size: 12px; color: var(--ink2); border-top: 1px dashed var(--line); padding-top: 8px; }
+@media (max-width: 680px) { .fitem { grid-template-columns: 50px 1fr; } .fitem .chip, .fsrc { display: none; } }
