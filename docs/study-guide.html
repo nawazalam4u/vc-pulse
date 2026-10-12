@@ -35,7 +35,8 @@
     <b>Live app</b><a href="https://vc-pulse-lime.vercel.app">https://vc-pulse-lime.vercel.app</a>
     <b>How it works page</b><a href="https://vc-pulse-lime.vercel.app/brief">https://vc-pulse-lime.vercel.app/brief</a>
     <b>GitHub (public)</b><a href="https://github.com/nawazalam4u/vc-pulse">https://github.com/nawazalam4u/vc-pulse</a>
-    <b>Files to submit</b><span>Downloads: VC_Pulse_Components_Map.png · VC_Pulse_Nine_Checks.png · VC_Pulse_Demo_Video.mp4 (2:27)</span>
+    <b>Files to submit</b><span>Downloads: VC_Pulse_Components_Map.png · VC_Pulse_Nine_Checks.png · VC_Pulse_Demo_Video.mp4 (2:45)</span>
+    <b>AI</b><span>Gemini Flash via the course OpenRouter key (Google models + Google infrastructure only)</span>
     <b>Download page</b><a href="https://vc-pulse-lime.vercel.app/brief#downloads">vc-pulse-lime.vercel.app/brief#downloads</a>
   </div>
 </div>
@@ -46,8 +47,8 @@
 <tr><td><b>Components Map (10)</b></td><td>The parts of the system and how they talk to each other</td><td>Swimlane map in the course format: 6 actors (Founder, Scheduler, System, Live data, Gemini, Database) × 6 stages (Trigger → Input → Context → Processing → AI → Output), arrows for every data flow, the human gate visible (section 4)</td></tr>
 <tr><td><b>Working Vercel link (10)</b></td><td>Opens, works, has real data at submission</td><td>vc-pulse-lime.vercel.app: 50 real investors, live signals, refreshed twice a week by cron and on demand; every page and endpoint re-tested on 12 Oct</td></tr>
 <tr><td><b>Design (10)</b></td><td>Clear, usable, looks professional</td><td>4-step "how it works" strip; 4 action lanes; evidence drawer with "why it matters"; live evidence feed; blue/purple column ownership; keyboard + mobile support; loads in under 1 s</td></tr>
-<tr><td><b>Backend logic &amp; build quality (25)</b></td><td>Hard level: multi-step system, tool/API use, backend logic, technical trade-offs, reliability</td><td>8-step pipeline; 5 external sources + Gemini + Postgres; code-verified AI; least-privilege logins; run lock + HMAC tickets; source/AI failure handling; cron time budget; 23 rule tests + 26 permission tests + accuracy evaluation (100% precision)</td></tr>
-<tr><td><b>Demo video (5)</b></td><td>Shows the solution working</td><td>2:27 narrated walkthrough of the live app, including a real refresh, the evidence, the email draft and the database refusing to overwrite notes</td></tr>
+<tr><td><b>Backend logic &amp; build quality (25)</b></td><td>Hard level: multi-step system, tool/API use, backend logic, technical trade-offs, reliability</td><td>8-step pipeline; 5 external sources + Gemini (via the course OpenRouter gateway) + Postgres; signal-meaning model with code-verified AI; least-privilege logins; run lock + HMAC tickets; source/AI failure handling; cron time budget; 23 rule tests + 26 permission tests + accuracy evaluation (100% precision)</td></tr>
+<tr><td><b>Demo video (5)</b></td><td>Shows the solution working</td><td>2:45 narrated walkthrough of the live app, including a real refresh, the evidence, the email draft and the database refusing to overwrite notes</td></tr>
 <tr><td><b>Viva (40)</b></td><td>You understand and can defend every decision</td><td>This guide: the problem, the options we rejected, every safeguard, the maths, the accuracy numbers, 45 practice questions</td></tr>
 </table>
 
@@ -55,8 +56,8 @@
 <table>
 <tr><th style="width:28%">Requirement</th><th>How VC Pulse meets it</th><th style="width:26%">Show it in the demo</th></tr>
 <tr><td><b>1. Real information</b>: actual investor activity from the past 30 days, not fictional examples</td><td>50 real, verified investors. Signals come only from live public sources (Google News RSS, their blog/Substack RSS, Apple Podcasts); each keeps its real URL and the source's own date; anything older than 30 days is dropped; the evidence must name the investor.</td><td>"Latest live evidence" feed and the evidence list in any drawer: click a link</td></tr>
-<tr><td><b>2. Intelligent analysis</b>: Gemini Flash explains why a signal matters to the founder</td><td>For every investor with a signal, Gemini Flash writes "Why it matters for Haulr" (thesis fit, appetite, the angle for the pitch), classifies each item (who acted, what kind, logistics fit), writes the hook and the email draft, and flags if they just backed a direct competitor.</td><td>💡 "Why it matters for Haulr" box in the drawer and on hot/warm cards</td></tr>
-<tr><td><b>3. Useful recommendations</b>: prioritised by relevant evidence, not random scores</td><td>Score = signal type × logistics fit × who acted × freshness, plus thesis fit and timing from Vikram's own status; shown line by line; deterministic (same evidence → same score); 23 rule tests.</td><td>"🧮 Why 59/100" box in the drawer</td></tr>
+<tr><td><b>2. Intelligent analysis</b>: Gemini Flash explains why a signal matters to the founder</td><td>Gemini Flash decides what each signal MEANS for Haulr (🎯 thesis, 🚀 deploying, 🤝 complement, 👀 visible, ⚠️ overlap), writes an honest "Why it matters for Haulr" that states what the signal does and doesn't prove (with caveats such as "US-only mandate" or "consumer deal, not logistics"), flags geography/stage fit and direct competitors, and writes the hook and email draft.</td><td>💡 "Why it matters for Haulr" box in the drawer and on hot/warm cards</td></tr>
+<tr><td><b>3. Useful recommendations</b>: prioritised by relevant evidence, not random scores</td><td>Score = signal meaning × topic fit × who acted × freshness, plus thesis fit, India/seed fit (Gemini's caveats change the score) and timing from Vikram's own status; shown line by line. A cold REACH OUT needs a logistics hook; a NUDGE needs a timely one. 42 rule tests.</td><td>"🧮 Why 59/100" box in the drawer</td></tr>
 <tr><td><b>4. Safe database updates</b>: only the 4 signal fields change</td><td>Postgres column privileges: the engine login can update only last_signal_date, signal_summary, follow_up_score, recommended_action; MD5 fingerprint before/after every run; 26 permission tests.</td><td>Notes guard tab → "Attack my own database"</td></tr>
 <tr><td><b>5. A working application</b>: Vercel URL, GitHub repo, Components Map</td><td>Live URL, public repo with auto-deploy, swimlane Components Map PNG, Nine Checks PNG, demo video, all downloadable from /brief#downloads.</td><td>Open the link; /brief#downloads</td></tr>
 </table>
@@ -99,7 +100,7 @@ Vikram's list tells him <b>who</b> the investors are and <b>when he last spoke t
 <tr><td><b>D. Paid data (Crunchbase / PitchBook APIs)</b></td><td>Structured deals and people data</td><td>Expensive, needs approval; covers deals but not "wrote / said / appeared"; not "live" in the way news is.</td></tr>
 <tr><td><b>E. "Ask the AI" only (Gemini + Google Search for each VC)</b></td><td>One prompt per VC: "what did they do in 30 days?"</td><td>Simplest, but (1) Google Search grounding isn't in the free Gemini plan, (2) the AI may invent dates or links (hallucination), (3) scores would change run to run and be unexplainable. Hard to defend in a viva.</td></tr>
 <tr><td><b>F. Autonomous AI agent (LangChain-style)</b></td><td>An agent browses, decides and writes to the database</td><td>Over-engineered; unpredictable; slow; an agent with write access could touch the notes. The task is a fixed pipeline, not an open-ended one.</td></tr>
-<tr><td style="background:#e9f8f0"><b>✔ G. Our hybrid pipeline</b></td><td style="background:#e9f8f0">Official public feeds → Gemini Flash <i>judges</i> each real item (strict JSON) → code <i>checks</i> the AI and <i>calculates</i> the score → database permissions guard the notes</td><td style="background:#e9f8f0">Live, free, legal; every claim has a link; same evidence = same score; the critical rule is enforced by Postgres, not by trust; testable (23 rule tests, 26 permission tests, a 57-item accuracy evaluation); cheap enough to run forever.</td></tr>
+<tr><td style="background:#e9f8f0"><b>✔ G. Our hybrid pipeline</b></td><td style="background:#e9f8f0">Official public feeds → Gemini Flash <i>judges</i> each real item (strict JSON) → code <i>checks</i> the AI and <i>calculates</i> the score → database permissions guard the notes</td><td style="background:#e9f8f0">Live, free, legal; every claim has a link; same evidence = same score; the critical rule is enforced by Postgres, not by trust; testable (42 rule tests, 26 permission tests, a 57-item accuracy evaluation); cheap enough to run forever.</td></tr>
 </table>
 <div class="box"><b>One-line answer for the viva:</b> "AI is good at reading and judging meaning, bad at being consistent and honest about facts. So we let Gemini do only the judging, on real evidence we fetched, and let code and the database handle facts, maths and safety."</div>
 
@@ -120,25 +121,38 @@ Vikram's list tells him <b>who</b> the investors are and <b>when he last spoke t
   <li><b>Human gate:</b> Vikram reviews, clicks the evidence, asks Gemini for a draft, edits and sends it himself, and updates his own columns.</li>
 </ol>
 
-<h3>Worked example: why 8VC's Jake Medwell scored 59 (REACH OUT)</h3>
+<h3>Why "they invested in logistics before" is NOT a strong signal (first principles)</h3>
+<div class="box warn"><b>The professor's challenge:</b> if an investor already backed an EV startup, why would they back another one? Usually they won't: a fund rarely funds two companies that compete, and one deal uses up the "slot" for that category. So a same-space investment alone proves interest, not intent.</div>
+<table>
+<tr><th style="width:24%">What we ask instead</th><th style="width:9%">Weight</th><th>Why it predicts a meeting</th><th style="width:22%">Code check</th></tr>
+<tr><td>🎯 <b>Thesis:</b> did they <i>say or write</i> they want logistics / supply-chain / transport software?</td><td>42</td><td>An open invitation: they are looking for more deals like Haulr</td><td>Must be words, not a deal; the source text must mention logistics, supply chain, mobility or industry</td></tr>
+<tr><td>🚀 <b>Deploying:</b> are they writing <i>new early cheques now</i> (new fund, bigger seed cheques, new cohort)?</td><td>34</td><td>Allocation is open at Haulr's stage; counts fully only if in or near logistics</td><td>Stake sales / exits are never deploying</td></tr>
+<tr><td>🤝 <b>Complement:</b> did they back an adjacent, <i>non-competing</i> company?</td><td>26</td><td>Conviction in the sector plus a partnership or warm-intro angle; not proof of a new slot</td><td>-</td></tr>
+<tr><td>👀 <b>Visible:</b> are they active on other topics?</td><td>10</td><td>Reachable this week, nothing more</td><td>General SaaS/AI writing is downgraded to this</td></tr>
+<tr><td>⚠️ <b>Overlap:</b> did they back a <i>direct competitor</i>?</td><td>0 and −15</td><td>Usually a no: they won't fund a portfolio company's rival</td><td>Must be an investment naming the competitor</td></tr>
+</table>
+<p>Two more first-principles rules: <b>fit beats fame</b> (India-based +10, seed/early +5, US-only −15, India appetite unclear −5, later-stage −8, from Gemini's own caveats) and <b>a cold email needs an on-topic reason</b> (REACH OUT requires a logistics hook; "actively investing in other sectors" stays WARM), while <b>a follow-up only needs a timely reason</b> (NUDGE can use "you just expanded your seed programme").</p>
+
+<h3>Worked example: Rajan Anandan (Peak XV) = 54 → WARM (12 Oct, live)</h3>
 <table>
 <tr><th>Step</th><th>Value</th></tr>
-<tr><td>Evidence</td><td>"Gallatin AI raises $50M Series A to digitize military logistics" (SiliconANGLE, 9 Oct; found by searching "8VC" + logistics words; 6 more outlets = same event, counted once)</td></tr>
-<tr><td>Gemini's judgement</td><td>actor = firm, kind = invested, logistics fit = 3, event = gallatin-series-a</td></tr>
-<tr><td>Code checks</td><td>deal + logistics word in the headline ✓ · logistics word present ✓</td></tr>
-<tr><td>Signal points</td><td>40 (invested) × 1.0 (logistics) × 0.85 (firm, not the partner personally) × 1.0 (≤ 7 days old) = <b>34</b></td></tr>
-<tr><td>Thesis fit</td><td>thesis mentions logistics / transport → <b>+15</b></td></tr>
-<tr><td>Timing</td><td>not contacted yet + fresh signal → <b>+10</b></td></tr>
-<tr><td>Total → action</td><td>34 + 15 + 10 = <b>59</b> ≥ 55 → <b>REACH OUT</b> with the hook "Saw 8VC lead Gallatin AI's $50M Series A…"</td></tr>
+<tr><td>Best evidence</td><td>"Peak XV Selects 18 Startups for Latest Surge Cohort, Raises Investment Cap to $5 Mn" (30 Sep)</td></tr>
+<tr><td>Gemini's reading</td><td>actor firm · kind invested · meaning 🚀 deploying · topic fit 1 (startups broadly, not logistics) · geography match · stage match</td></tr>
+<tr><td>Signal points</td><td>34 (deploying) × 0.6 (general topic) × 0.85 (firm) × 0.87 (12 days old) = 15.1; plus 40% / 20% of two 👀 visible items (his book and a TV interview) → strength <b>21</b></td></tr>
+<tr><td>Fit</td><td>thesis covers B2B software <b>+8</b> · India-based <b>+10</b> · invests at seed/early <b>+5</b></td></tr>
+<tr><td>Timing</td><td>Vikram pitched him 29 days ago and is waiting + fresh signal → natural nudge <b>+10</b></td></tr>
+<tr><td>Total → action</td><td>21 + 8 + 10 + 5 + 10 = <b>54</b>: one point below NUDGE (55) → <b>WARM</b>. Honest: Surge proves Peak XV is writing seed cheques in India, not that it wants logistics specifically.</td></tr>
 </table>
+<p class="small">Runs can differ by a few points (Gemini reads headlines slightly differently each time; earlier the same evidence scored 60 → NUDGE). That's why the board groups investors into lanes rather than treating 54 vs 55 as meaningful, and why every reason is shown.</p>
 
 <h3>What Gemini Flash writes for every investor (the "intelligent analysis")</h3>
 <table>
 <tr><th>Field</th><th>Example (live, 12 Oct)</th><th>Checked by code?</th></tr>
-<tr><td>Per item: actor, kind, logistics fit, event, summary</td><td>firm · invested · 3/3 · gallatin-series-a · "8VC led Gallatin AI's $50M Series A…"</td><td>Yes: names them, logistics word, author, 1 event = 1</td></tr>
+<tr><td>Per item: actor, kind, <b>meaning</b>, logistics fit, event, summary</td><td>firm · invested · 🚀 deploying · 1/3 · peakxv-surge-cohort · "Peak XV selected 18 startups and raised the Surge cap to $5M"</td><td>Yes: names them, author, sale ≠ deploying, thesis must be on-topic, 1 event = 1</td></tr>
+<tr><td>Per investor: geography fit, stage fit</td><td>Peak XV: match / match · a16z (American Dynamism): mismatch / unclear</td><td>India-based investors are never penalised; flags change the score</td></tr>
 <tr><td>What they did (overall)</td><td>"8VC led Gallatin AI's $50M Series A on 9 Oct to digitize logistics."</td><td>Only kept items are summarised</td></tr>
-<tr><td><b>Why it matters for Haulr</b></td><td>"8VC actively deploys capital into supply chain logistics software, making Haulr's B2B shipper visibility and dispatch platform a strong thematic fit."</td><td>Shown only when a real signal exists</td></tr>
-<tr><td>Hook (email opener)</td><td>"Saw 8VC lead Gallatin AI's $50M Series A…"</td><td>Must come from a kept item; never "your" for a firm act</td></tr>
+<tr><td><b>Why it matters for Haulr</b></td><td>"Point Nine just backed Procuros, an AI-native supply chain platform: proof of appetite for supply-chain SaaS at early stage, and Procuros is a complement, not a rival. Caveat: Europe-focused fund."</td><td>Grounding filter removes any sentence naming a company not in the evidence</td></tr>
+<tr><td>Hook (email opener)</td><td>"Saw Peak XV raise Surge checks to $5M on 30 Sep."</td><td>Must come from a kept item; never "your" for a firm act</td></tr>
 <tr><td>Competitor conflict</td><td>(none this week) If they just backed a direct competitor: −15 and "lead with how you're different, or skip"</td><td>The competitor must be named in kept evidence</td></tr>
 <tr><td>Email draft (on click)</td><td>Cites the real signal; leaves "[your one-line traction here]"</td><td>Never sent; never invents traction</td></tr>
 </table>
@@ -158,10 +172,18 @@ Vikram's list tells him <b>who</b> the investors are and <b>when he last spoke t
 <div class="kpis">
   <div class="kpi"><div class="big">100%</div>precision: no false claims about who did what (57 hand-labelled items)</div>
   <div class="kpi"><div class="big">89%</div>recall: found 24 of 27 real signals; misses were headlines that didn't name the investor</div>
-  <div class="kpi"><div class="big">49/49</div>automated tests pass (23 scoring rules + 26 database permissions)</div>
+  <div class="kpi"><div class="big">68/68</div>automated tests pass (42 scoring rules + 26 database permissions)</div>
   <div class="kpi"><div class="big">0</div>errors in the final live runs; notes fingerprint identical before and after every run</div>
 </div>
-<p><b>How the accuracy test works:</b> we took 57 real items from the live pipeline and labelled each by hand (is it really about this investor or their firm? is it about logistics?). Then we ran them through Gemini plus our code checks (<code>tests/eval_judge.py</code>) and compared. The topic label was 100% right on the correct items. This was measured on the fallback model (Gemini 3.5 Flash-Lite), so it's the worst case.</p>
+<h3>Choosing the model with data (cheapest that does the job)</h3>
+<table>
+<tr><th>Model (via OpenRouter, Google infrastructure)</th><th>Thinking</th><th>Precision</th><th>Recall</th><th>Accuracy</th><th>Cost for 57 items</th></tr>
+<tr><td>Gemini 3.7 Flash</td><td>low</td><td>96%</td><td>85%</td><td>91%</td><td>$0.063</td></tr>
+<tr><td>Gemini 3.7 Flash</td><td>minimal</td><td>100%</td><td>85%</td><td>93%</td><td>$0.031</td></tr>
+<tr><td style="background:#e9f8f0"><b>Gemini 3.5 Flash-Lite (chosen)</b></td><td style="background:#e9f8f0">minimal</td><td style="background:#e9f8f0"><b>100%</b></td><td style="background:#e9f8f0"><b>89%</b></td><td style="background:#e9f8f0"><b>95%</b></td><td style="background:#e9f8f0"><b>$0.013</b></td></tr>
+</table>
+<p>A full live run (50 investors, ~400 items) now takes ~40 seconds and costs ~$0.10-0.13 (≈ ₹9-11), down from $0.51 with Gemini 3.7 Flash at low thinking. 3.7 Flash and 3.8 Flash stay as automatic backups.</p>
+<p><b>How the accuracy test works:</b> we took 57 real items from the live pipeline and labelled each by hand (is it really about this investor or their firm? is it about logistics?). Then we ran them through Gemini plus our code checks (<code>tests/eval_judge.py</code>) and compared. The topic label was 100% right on the correct items. Measured on 12 Oct with the final settings (Gemini 3.5 Flash-Lite via OpenRouter, minimal thinking).</p>
 <p><b>Why precision over recall:</b> a missed signal costs Vikram a little; a wrong one ("congrats on your post" when a colleague wrote it) could embarrass him in front of an investor. So the rules are strict on purpose.</p>
 <p><b>Live runs:</b> all 50 investors in 40-60 seconds; ~400 public items checked per run; ~60-80 kept as real signals; both the Refresh path and the scheduled cron path tested on the real server.</p>
 
@@ -192,6 +214,15 @@ Vikram's list tells him <b>who</b> the investors are and <b>when he last spoke t
 <tr><td class="sev lo">Low</td><td>Long lanes, no "add investor", poor link preview</td><td>"Show all" lanes, Add-investor form, preview image</td></tr>
 <tr><td class="sev hi">High</td><td>Final live check: the email-draft button crashed (database returned a count as text)</td><td>Converted to a number; re-tested live</td></tr>
 <tr><td class="sev md">Medium</td><td>Gemini's email draft invented traction ("scaling fast with enterprise accounts")</td><td>Drafts may never claim traction; they leave "[your one-line traction here]" for Vikram</td></tr>
+<tr><td class="sev hi">High</td><td><b>Professor feedback:</b> "invested in this space before" was treated as a strong signal</td><td>Signal meaning model: thesis / deploying / complement / visible / overlap; same-space deals are complement (medium) or overlap (negative)</td></tr>
+<tr><td class="sev hi">High</td><td>Old Gemini keys retired by the institute</td><td>All AI moved to the course OpenRouter key: Google models only, Google infrastructure only, no vendor fallback, retries on 429/5xx, stop on 402; old key removed from Vercel</td></tr>
+<tr><td class="sev md">Medium</td><td>Caveats in the "why" text (e.g. US-only mandate) didn't change the score</td><td>Gemini geography/stage flags apply −15/−5/−8 or +5; India-based +10</td></tr>
+<tr><td class="sev md">Medium</td><td>General SaaS essays labelled "thesis"; a stake <i>sale</i> labelled "deploying"</td><td>Thesis must mention Haulr's world in the source text; sales/exits are never deploying</td></tr>
+<tr><td class="sev md">Medium</td><td>Cold REACH OUT based on consumer / wealth-tech / interior-materials deals</td><td>A first email needs a logistics hook; such cases are WARM ("active, good fit, no logistics hook yet")</td></tr>
+<tr><td class="sev md">Medium</td><td>"Why" text cited portfolio companies from the model's memory</td><td>Grounding filter removes any sentence naming a company not in the evidence</td></tr>
+<tr><td class="sev md">Medium</td><td>Run cost $0.51 with 3.7 Flash (thinking tokens are billed)</td><td>Measured all options; Flash-Lite at minimal thinking is cheapest <i>and</i> most accurate ($0.10/run)</td></tr>
+<tr><td class="sev md">Medium</td><td>Email draft opened with a weaker signal (a book) and vague portfolio claims</td><td>Draft opens with the engine's chosen signal and why; no claims beyond the evidence</td></tr>
+<tr><td class="sev lo">Low</td><td>A GitHub-triggered Vercel build failed once (platform glitch)</td><td>Health endpoint reports the live commit; deploy script falls back to a direct Vercel deploy</td></tr>
 <tr><td class="sev lo">Known</td><td>Notes visible in the public demo</td><td>Deliberate so reviewers can verify; editing needs the private key; production would add login</td></tr>
 </table>
 
@@ -201,7 +232,8 @@ Vikram's list tells him <b>who</b> the investors are and <b>when he last spoke t
 <tr><td>Vercel</td><td>Puts websites and small server programs on the internet</td><td>Hosts the dashboard + Python API; Cron runs the refresh Mon/Thu</td></tr>
 <tr><td>GitHub</td><td>An online "time machine" for code; public = portfolio</td><td>Stores code; each push auto-deploys</td></tr>
 <tr><td>Neon (Postgres)</td><td>A cloud database</td><td>Vikram's table, evidence, runs, drafts; enforces column permissions</td></tr>
-<tr><td>Gemini Flash (3.5 Flash → 3.5 Flash-Lite → 3.1 Flash-Lite)</td><td>Google's fast AI models (exam requirement)</td><td>Judges items, writes summaries, hooks and drafts</td></tr>
+<tr><td>Gemini Flash (3.5 Flash-Lite → 3.7 Flash → 3.8 Flash)</td><td>Google's fast AI models (exam requirement)</td><td>Judges what each signal means, explains why it matters, writes hooks and drafts</td></tr>
+<tr><td>OpenRouter</td><td>A gateway that forwards AI requests to model providers with one key</td><td>The course's key; we force Google models on Google's own servers (provider.only, no fallbacks) and read the real cost of every call</td></tr>
 <tr><td>Google News RSS</td><td>Free public news feed for apps</td><td>Interviews, quotes, events, deals</td></tr>
 <tr><td>Blog / Substack RSS</td><td>Feeds blogs publish for readers' apps</td><td>What investors wrote (author-checked)</td></tr>
 <tr><td>Apple Podcasts API</td><td>Apple's public podcast search</td><td>Podcasts they spoke on</td></tr>
@@ -231,6 +263,10 @@ Vikram's list tells him <b>who</b> the investors are and <b>when he last spoke t
 <tr><td><b>Rate limit / quota</b></td><td>How many requests a service allows (free Gemini 3.5 Flash: 20 per day).</td></tr>
 <tr><td><b>Fallback</b></td><td>Plan B: if one model is busy, use the next.</td></tr>
 <tr><td><b>Deterministic</b></td><td>Same input → same output (our scoring code).</td></tr>
+<tr><td><b>OpenRouter / gateway</b></td><td>One API that routes requests to many AI providers. We restrict it to Google models and Google infrastructure.</td></tr>
+<tr><td><b>BYOK</b></td><td>"Bring your own key": the institute's Google account pays; OpenRouter reports the real Google cost in <code>cost_details</code>, which we log per run.</td></tr>
+<tr><td><b>Reasoning ("thinking") tokens</b></td><td>Tokens the model spends thinking before answering; billed. Can't be switched off on these models, so we use "minimal".</td></tr>
+<tr><td><b>Grounding filter</b></td><td>Our code removes any "why" sentence that names a company not present in the evidence.</td></tr>
 <tr><td><b>Prompt injection</b></td><td>Text inside data trying to give the AI orders. Limited here: the AI can only fill a fixed schema, and code checks its answers.</td></tr>
 </table>
 
@@ -272,14 +308,14 @@ Vikram's list tells him <b>who</b> the investors are and <b>when he last spoke t
 <p class="q">15. How does the relationship affect the advice?</p><p class="a">Followed up under 14 days ago → WAIT (hook saved). Waiting 14+ days + fresh signal → NUDGE. Waiting 45+ days and quiet → "one light check-in next month, or move on".</p>
 <p class="q">16. Same person, different name problem?</p><p class="a">Evidence must name the investor or firm; lookback uses name + firm; podcasts need the exact full name; Gemini's actor check rejects namesakes (e.g. a different Neeraj Arora).</p>
 <p class="q">17. What stops two runs colliding?</p><p class="a">A unique index allows only one "running" run; the scheduled run supersedes a stale manual run; batch calls need an HMAC run ticket.</p>
-<p class="q">18. What does a run cost?</p><p class="a">About ₹0: ~5 Gemini calls (free tier), free feeds, Vercel Hobby, Neon free.</p>
-<p class="q">19. How did you choose the weights?</p><p class="a">Expert heuristics from the brief: a deal in your space is the strongest signal, then writing, speaking, events; freshness decays over 30 days; timing respects follow-up etiquette. They're in one place in code and the next step is learning them from which emails got replies.</p>
+<p class="q">18. What does a run cost?</p><p class="a">About $0.10 (≈ ₹9) of Gemini per run through the course OpenRouter key (logged per run); the news feeds, Vercel Hobby and Neon are free.</p>
+<p class="q">19. How did you choose the weights?</p><p class="a">From first principles about what predicts a meeting: a stated thesis (42) beats active early deployment (34), which beats an adjacent deal (26), which beats mere visibility (10); a direct competitor is negative. Freshness decays over 30 days; fit (India +10, seed +5) and timing respect reality and etiquette. They're in one place in code and the next step is learning them from which emails got replies.</p>
 <p class="q">20. What does the JSON schema do?</p><p class="a">It forces Gemini to return exact fields with allowed values (e.g. kind ∈ invested/wrote/said/appeared/mentioned/other), so code can rely on it.</p>
 <p class="q">21. Why Gemini 3.5 Flash with "thinking: low"?</p><p class="a">Careful enough for judging, 3× faster than default thinking; Lite models as fallback.</p>
 <p class="q">22. Security?</p><p class="a">Secrets only in Vercel env; least-privilege DB logins; HMAC run tickets; CSP + http(s)-only links; editor key in a header; rate limits on public AI actions.</p>
 <p class="q">23. Is anything fake?</p><p class="a">Investors, firms, theses and every signal are real and live. Vikram, "Haulr" and his notes are illustrative because he is a case character.</p>
 <p class="q">24. Why not an AI agent?</p><p class="a">The task is a fixed pipeline; an agent adds unpredictability and would need write access near the notes.</p>
-<p class="q">25. How did you test?</p><p class="a">23 scoring-rule tests (offline), 26 live permission tests, a 57-item accuracy evaluation, end-to-end runs on both run paths, and a harsh audit with every finding fixed.</p>
+<p class="q">25. How did you test?</p><p class="a">42 scoring-rule tests (offline), 26 live permission tests, a 57-item accuracy evaluation, end-to-end runs on both run paths, and a harsh audit with every finding fixed.</p>
 <p class="q">26. What is the human's role?</p><p class="a">Vikram decides whom to contact, edits and sends every email, and owns his notes. The tool only recommends.</p>
 <p class="q">27. Limitations?</p><p class="a">Headline-level evidence (no full-article reading); public activity only; event coverage limited without paid search; weights not yet learned from outcomes.</p>
 <p class="q">28. What would make it a product?</p><p class="a">Login and per-founder data (row-level security), Gmail integration to log replies (with consent), Slack/Telegram brief, learning weights from replies, paid search grounding for events.</p>
@@ -287,9 +323,9 @@ Vikram's list tells him <b>who</b> the investors are and <b>when he last spoke t
 <p class="q">30. What did you learn?</p><p class="a">Use AI for judgement on real evidence, box it in with a schema and context, verify it with code, measure it, and let the database enforce the rules that matter most.</p>
 
 <h3>AI concepts the examiner may probe</h3>
-<p class="q">31. Which model, exactly, and why "Flash"?</p><p class="a">Gemini 3.5 Flash (thinking level low) with automatic fallback to 3.5 Flash-Lite and 3.1 Flash-Lite. Flash models are fast and cheap, which suits 50 investors × twice a week; the task (classify + explain short headlines) doesn't need a large "Pro" model. All are Gemini Flash, as the exam requires.</p>
-<p class="q">32. What happened when Google said "high demand" (503)?</p><p class="a">The code waits and retries once, then falls back to the next Flash model; a model that hits its free daily limit is skipped for the rest of the run. That's why every run finished with 0 errors.</p>
-<p class="q">33. What is a token, and how many do you use?</p><p class="a">A token is a piece of a word (~¾ of a word). One judge call sends ~10 investors' headlines (a few thousand tokens) and gets back a JSON verdict; ~5 calls per run, well inside the free tier.</p>
+<p class="q">31. Which model, exactly, and why?</p><p class="a">Gemini 3.5 Flash-Lite (minimal thinking) through the course OpenRouter key, with 3.7 Flash and 3.8 Flash as backups. We measured all three on the 57 labelled items: Flash-Lite was the cheapest and also the most accurate (100% precision, 89% recall), following the course rule "start with the cheapest model that can do the job".</p>
+<p class="q">32. What happens on errors (429/5xx/402)?</p><p class="a">429 and 5xx: retry with backoff (2, 4, 8 s) up to 3 times, then the next Google model. 402 (out of credits): stop immediately and say so. If the AI still fails for an investor, they keep last run's verdict and the run is marked "partial". Every final run ended with 0 errors.</p>
+<p class="q">33. What is a token, and how many do you use?</p><p class="a">A token is a piece of a word (~¾ of a word). One judge call sends ~10 investors' headlines (a few thousand tokens) and gets back a JSON verdict; ~5 calls per run, ~90,000 tokens in total (including minimal thinking), about $0.10.</p>
 <p class="q">34. What is a context window, and why batch 10 investors per call?</p><p class="a">The amount of text a model can read at once. 10 investors' items fit easily; batching cuts calls from 50 to 5 (free quota is 20/day for 3.5 Flash) while keeping each investor's items clearly separated.</p>
 <p class="q">35. What is prompt engineering here?</p><p class="a">A system instruction with Haulr's context, exact definitions (actor, kind, the 0-3 logistics rubric), examples of good hooks and "why", strict rules (use only the given text, credit the person only for their own acts), plus labels telling Gemini how each item was found.</p>
 <p class="q">36. Why didn't you use RAG or embeddings?</p><p class="a">RAG retrieves from a document store; our "retrieval" is live news/RSS search, and the items are short headlines, so we pass them directly. Embeddings would add cost and complexity without improving a yes/no attribution decision.</p>
@@ -302,6 +338,18 @@ Vikram's list tells him <b>who</b> the investors are and <b>when he last spoke t
 <p class="q">43. Where could this fail in production, honestly?</p><p class="a">Headlines that don't name the investor (missed signals), paywalled articles we can't read, Google News changing its feed, free-tier limits. Each is either handled (fallbacks, "partial" runs) or listed as a next step.</p>
 <p class="q">44. Why serverless + cron instead of a always-on server?</p><p class="a">The work happens twice a week for ~1 minute; serverless costs nothing in between, scales automatically, and Vercel Cron gives the schedule.</p>
 <p class="q">45. If you had one more week?</p><p class="a">Gmail integration (with consent) to log replies and learn which signals predict replies; per-founder login; read full articles for deeper evidence; paid search grounding for events and panels.</p>
+
+<h3>The signal logic (the professor's feedback): expect these</h3>
+<p class="q">46. "They invested in a logistics startup, so they're a strong lead." Agree?</p><p class="a">No. If it's a direct competitor, they're usually out (overlap, −15). If it's adjacent, it shows conviction but not a free slot (complement, medium). Strong leads are investors who <i>say</i> they want the space (thesis) or are <i>actively writing new early cheques</i> (deploying), at Haulr's stage and in its geography.</p>
+<p class="q">47. Why can't a deal be a "thesis"?</p><p class="a">A thesis is a stated intent ("we're looking for freight tech"). A deal is an action about one company. Code converts any "thesis" deal into a complement.</p>
+<p class="q">48. Why are most investors WARM rather than REACH OUT this week?</p><p class="a">Because the evidence says so. Many Indian seed funds are actively investing, but in other sectors. A cold email needs a logistics hook; without one, the honest advice is "warm, if you have time". Inventing urgency would waste Vikram's credibility.</p>
+<p class="q">49. Why is a follow-up allowed on a weaker reason than a first email?</p><p class="a">A follow-up only needs a timely, polite excuse (e.g. "you just raised your Surge cheque size"); the investor already knows Haulr. A first email must earn attention, so it needs relevance.</p>
+<p class="q">50. How does geography change the ranking?</p><p class="a">Haulr is an Indian seed company. India-based investors get +10; a US-only mandate (e.g. a16z's American Dynamism) gets −15; non-Indian funds with no sign of India investing get −5. Gemini reads this from the evidence and thesis; code applies it, and never penalises an India-based investor.</p>
+<p class="q">51. How do you stop Gemini adding facts from memory?</p><p class="a">The prompt forbids it, and a grounding filter removes any "why" sentence that names a company the evidence doesn't mention.</p>
+<p class="q">52. Why OpenRouter and not Google directly?</p><p class="a">The institute retired the old Gemini keys and issued an OpenRouter key. We obey its rules: Google models only, Google infrastructure only (provider.only, no fallbacks), key in an environment variable, retries with backoff, stop on 402.</p>
+<p class="q">53. What does a run cost now?</p><p class="a">About $0.10-0.13 (≈ ₹9-11) for 50 investors and ~400 items, logged per run from OpenRouter's usage data. That's about ₹75 a month at twice a week.</p>
+<p class="q">54. What are "reasoning tokens" and why did they matter?</p><p class="a">Tokens the model spends thinking before answering. They are billed. Gemini 3.7 Flash at "low" thinking cost $0.51 per run; Flash-Lite at "minimal" costs $0.10 with better measured accuracy.</p>
+<p class="q">55. Scores move a few points between runs. Is that a problem?</p><p class="a">Gemini reads headlines slightly differently each time, so ±5 points is normal. Mitigations: temperature 0.1, strict JSON, code checks, lanes instead of exact ranks, and every reason visible. A 54 and a 55 are both "worth a look".</p>
 
 <h2>12 · Submission checklist</h2>
 <ul>
