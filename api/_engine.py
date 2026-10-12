@@ -188,7 +188,9 @@ def fallback_hook(vc, counted):
     """Factual hook built from the strongest kept item's real title: 'your' only when the partner acted personally."""
     if not counted:
         return ""
-    best = sorted(counted, key=lambda k: (k["actor"] != "person" and k.get("angle") != "thesis", -k["points"]))[0]
+    top = max(k["points"] for k in counted)
+    strong = [k for k in counted if k["points"] >= 0.6 * top]  # the partner's own act wins only if it's comparably strong
+    best = sorted(strong, key=lambda k: (k["actor"] != "person" and k.get("angle") != "thesis", -k["points"]))[0]
     who = "your" if best["actor"] == "person" else re.sub(r"\s*\(.*\)", "", vc["firm"]).strip() + "'s"
     verb = {"invested": "deal coverage", "wrote": "post", "said": "interview", "appeared": "event appearance"}.get(best["kind"], "news")
     if best.get("origin") == "blog":
@@ -256,6 +258,25 @@ def names_them(vc, item, kind):
 ADJACENT_WORDS = re.compile(LOGISTICS_WORDS.pattern + r"|industrial|physical|manufactur|mobility|operations|infrastructure", re.I)
 
 
+SALE_WORDS = re.compile(r"\bsells?\b|\bsold\b|stake sale|offload|\bexits?\b|trims stake|cuts stake|block deal", re.I)
+COMMON = set("""A An The This That These Those It Its Their They He She His Her We Our Haulr Haulr's India Indian US USA
+Europe European Caveat Mismatch However But While Although Direct Proof Strong Good Clear Active Actively Recent Recently
+Seed Series Pre-seed AI B2B SaaS VC VCs CEO Partner Partners Fund Funds Ventures Capital Firm Oct Sep Sept Nov Aug
+Jan Feb Mar Apr May Jun Jul Dec Logistics Supply Chain No Not Only Also Both Its Since Surge""".split())
+
+
+def ground_why(why, evidence, vc):
+    """Remove any sentence that names a company/person the evidence (or Vikram's own row) doesn't mention.
+    Gemini is told not to use memory; this makes sure."""
+    known = (evidence + " " + " ".join(str(vc.get(k) or "") for k in ("name", "firm", "thesis", "region"))).lower()
+    keep = []
+    for sent in re.split(r"(?<=[.!?])\s+", why or ""):
+        words = re.findall(r"\b[A-Z][A-Za-z0-9&'\-]{2,}\b", sent)[1:]  # skip the sentence's first word
+        if all(w.split("-")[0] in COMMON or w.lower().rstrip("'s") in known for w in words):
+            keep.append(sent)
+    return " ".join(keep).strip()
+
+
 def check_angle(angle, kind, rel=3, text=None):
     """Code checks the AI's reading: a thesis is something they SAID about Haulr's space (not a deal, not off-topic);
     an overlap must be an investment."""
@@ -264,6 +285,8 @@ def check_angle(angle, kind, rel=3, text=None):
         return "complement"
     if angle == "thesis" and rel <= 1:
         return "visible"
+    if angle in ("deploying", "complement", "overlap") and text is not None and SALE_WORDS.search(text):
+        return "none"  # selling shares or exiting is not putting money in
     if angle == "thesis" and text is not None and not ADJACENT_WORDS.search(text):
         return "visible"  # a thesis must be ABOUT Haulr's world, in the source's own words
     if angle == "overlap" and kind != "invested":
@@ -533,7 +556,7 @@ def process(run_id, vc_ids, workers=8, judge_size=10):
         if kept:
             summary = (v or {}).get("overall") or "; ".join(
                 "%s: %s" % (short_date(s["published"]), s["summary"]) for s in kept[:2])
-            why = (v or {}).get("why", "")
+            why = ground_why((v or {}).get("why", ""), " ".join(i["title"] + " " + i.get("snippet", "") for i in items), vc)
             if why and strength > 0:
                 summary = summary.rstrip(". ") + ". Why it matters for Haulr: " + why
         else:

@@ -87,7 +87,7 @@ check("quiet + waiting 60 days -> PARK says don't chase / move on",
 
 H = e.fallback_hook({"firm": "Andreessen Horowitz (a16z)"}, [
     {"actor": "firm", "points": 20, "kind": "wrote", "title": "Investing in TypeSafe AI", "published": T},
-    {"actor": "person", "points": 5, "kind": "wrote", "title": "My own post", "published": T}])
+    {"actor": "person", "points": 15, "kind": "wrote", "title": "My own post", "published": T}])
 check("fallback hook prefers the partner's own act and only says 'your' for it", H.startswith('Saw your post "My own post"'))
 check("fallback hook for a firm act names the firm, not 'your'",
       e.fallback_hook({"firm": "Point Nine"}, [{"actor": "firm", "points": 9, "kind": "invested", "title": "Procuros raises EUR 20M",
@@ -122,6 +122,19 @@ check("'why now is the time to build industrial giants' counts as an adjacent th
       e.check_angle("thesis", "said", 2, "Lior Susan on Why Now Is the Time to Build Industrial Giants") == "thesis")
 dep_only = e.action_for(IN3, 70, 40, None, "Saw X", {"relevance": 2, "angle": "deploying"}, T, None)
 check("deploying in another sector, even 'adjacent', is not a cold-email reason", dep_only.startswith("WARM"))
+
+check("selling a stake is never 'deploying'",
+      e.check_angle("deploying", "invested", 2, "Accel India, 360 ONE Group sell over 4% stake in BlueStone") == "none")
+g = e.ground_why("Accel backs Zetwerk and BlackBuck. It is active in India.", "Accel India sells BlueStone stake",
+                 {"name": "Shekhar Kirani", "firm": "Accel India", "thesis": "Indian SaaS"})
+check("'why' sentences naming companies not in the evidence are removed", g == "It is active in India.")
+g2 = e.ground_why("Point Nine backed Procuros. Caveat: Europe-focused fund.", "Procuros raises EUR 20M",
+                  {"name": "Louis Coppey", "firm": "Point Nine", "thesis": "B2B SaaS"})
+check("grounded sentences are kept", g2 == "Point Nine backed Procuros. Caveat: Europe-focused fund.")
+weak = e.fallback_hook({"firm": "Blume Ventures"}, [
+    {"actor": "person", "points": 5.8, "kind": "wrote", "title": "Skateboarding, TOFU", "published": T, "origin": "blog"},
+    {"actor": "firm", "points": 23, "kind": "invested", "title": "Blume leads Lumio Series A", "published": T}])
+check("a trivial own post doesn't beat a strong firm signal in the hook", "Lumio" in weak)
 
 for n, ok in checks:
     print("PASS" if ok else "FAIL", "-", n)
