@@ -52,7 +52,7 @@ class handler(BaseHTTPRequestHandler):
                   "customers, growth, revenue or stage claims; instead write the placeholder [your one-line traction here] "
                   "for Vikram to fill in. Don't repeat his private notes word for word. One clear ask. "
                   "Also write linkedin_note: a LinkedIn connection note under 280 characters that cites the same signal, "
-                  "no links, no traction claims beyond the facts given, signed 'Vikram'. The body ends with the sign-off 'Vikram'.\n%s\nThe ask: %s."
+                  "no links, no traction claims beyond the facts given, signed 'Vikram'. The body is formatted as a real email: greeting on its own line, then 2-3 short paragraphs separated by blank lines, then the sign-off 'Vikram' on its own line.\n%s\nThe ask: %s."
                   % (company, vc["name"], vc["firm"],
                      "This is a polite follow-up: Vikram already pitched them and is waiting for a reply." if waiting
                      else "This is a first-touch email.", lead[:300], why[:400], ev, vc["status"], vc["contact_history"] or "-", vc["notes"] or "-",

@@ -89,7 +89,10 @@ class handler(BaseHTTPRequestHandler):
         if not _http.has_key(self):
             return _http.send(self, {"error": "Editing needs Vikram's key (open the magic link once)."}, 401)
         b = _http.body(self)
-        fields = clean(b.get("fields") or {})
+        raw = b.get("fields") or {}
+        fields = clean(raw)
+        if str(raw.get("linkedin_url") or "").strip() and not fields.get("linkedin_url"):
+            return _http.send(self, {"error": "That isn't a LinkedIn profile link. Paste one like https://www.linkedin.com/in/name"}, 400)
         if not fields:
             return _http.send(self, {"error": "nothing to change"}, 400)
         sets = ", ".join("%s = $%d%s" % (f, i + 2, "::date" if f == "last_contact_date" else "") for i, f in enumerate(fields))
