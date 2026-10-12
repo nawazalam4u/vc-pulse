@@ -28,4 +28,4 @@ with ThreadPoolExecutor(3) as ex:
 f = post({"action": "finish", "run": s["run"], "token": s["token"]})["run"]
 print("%ds | done %s | items %s | signals %s | reach out %s | quiet %s | errors %s | notes untouched: %s | %s" % (
     time.time() - t, f["vcs_done"], f["items_scanned"], f["signals_kept"], f["hot_count"], f["quiet_count"], f["errors"],
-    f["notes_hash_before"] == f["notes_hash_after"], (f.get("sources") or {}).get("models_used")))
+    f["notes_hash_before"] == f["notes_hash_after"], {k: v for k, v in (f.get("sources") or {}).items() if k in ("cost_usd", "tokens")}))

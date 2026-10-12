@@ -9,7 +9,7 @@ Vercel Cron (Mon/Thu 07:00 IST) or "Refresh now"
   -> Vikram's table (Neon Postgres, 50 investors)
   -> 5 live sources per investor (Google News x2, their blog RSS, Apple Podcasts, Gemini search when available)
   -> keep items with a link + source date <= 30 days
-  -> Gemini Flash (JSON schema): is it really them? invested / wrote / spoke / event? fit to logistics 0-3? hook
+  -> Gemini Flash (JSON schema): is it really them? what does it MEAN for Haulr (thesis / deploying / complement / visible / overlap)? why it matters, geography/stage fit, hook
   -> code: follow-up score 0-100 + action (REACH OUT, NUDGE, WARM, WAIT, LOW, PARK)
   -> UPDATE vcs SET last_signal_date, signal_summary, follow_up_score, recommended_action   (login: pulse_engine)
   -> dashboard + evidence + Gemini email draft (Vikram sends it himself)
@@ -33,7 +33,7 @@ See `db/roles.sql`. Every run stores an MD5 fingerprint of Vikram's columns befo
 ```
 api/_engine.py    gather -> judge -> score -> write (the core)
 api/_sources.py   the live public sources (no logins, no LinkedIn/X scraping)
-api/_gemini.py    Gemini Flash over HTTPS (JSON schema, model fallback, retries)
+api/_gemini.py    Gemini Flash via the institute's OpenRouter gateway (Google models + Google infrastructure only, JSON schema, retries, cost)
 api/_db.py        Neon SQL-over-HTTP with the two least-privilege logins
 api/run.py        "Refresh now", driven in batches by the browser (live progress)
 api/cron.py       Vercel Cron entry point (all 50 investors, then optional Telegram brief)
@@ -53,6 +53,6 @@ python3 dev_server.py            # http://localhost:3000
 python3 -I tests/test_scoring.py && python3 -I tests/test_guard.py
 ```
 
-**Vercel environment variables:** `GEMINI_API_KEY`, `ENGINE_DATABASE_URL`, `FOUNDER_DATABASE_URL`, `DASHBOARD_KEY` (Vikram's editor key: open `/#key=...` once), `CRON_SECRET` (Vercel Cron sends it), optional `TELEGRAM_BOT_TOKEN` + `TELEGRAM_CHAT_ID`, optional `GEMINI_MODEL`.
+**Vercel environment variables:** `OPENROUTER_API_KEY` (the institute's key; Google models only), `ENGINE_DATABASE_URL`, `FOUNDER_DATABASE_URL`, `DASHBOARD_KEY` (Vikram's editor key: open `/#key=...` once), `CRON_SECRET` (Vercel Cron sends it), optional `TELEGRAM_BOT_TOKEN` + `TELEGRAM_CHAT_ID`, optional `GEMINI_MODEL`.
 
 The investors, firms and theses are real (verified Oct 2026) and all signals are live. Vikram, his company "Haulr" and his contact notes are illustrative. Built for MESA Cohort C4, *AI and its Applications*: all AI is Gemini Flash.

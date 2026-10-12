@@ -327,7 +327,7 @@ function renderRuns() {
     const dur = r.finished_at ? Math.round((new Date(r.finished_at) - new Date(r.started_at)) / 1000) + "s" : "";
     const safe = r.notes_hash_after ? (r.notes_hash_before === r.notes_hash_after ? `<span class="pill" style="background:var(--ok2);color:var(--ok)">🔒 notes untouched</span>` : `<span class="pill" style="background:var(--warm2);color:#9a6700">notes edited during run</span>`) : `<span class="pill" style="background:var(--park2)">${esc(r.status)}</span>`;
     return `<div class="run"><div><b>Run #${r.id}</b><span>${new Date(r.started_at).toLocaleString("en-IN", { weekday: "short", day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" })} · ${r.trigger === "cron" ? "⏰ auto" : "👆 manual"} ${dur}</span></div>
-      <div><b>${r.vcs_done}/${r.vcs_total}</b><span>investors · AI: ${esc(modelsOf(r))}</span></div><div><b>${r.items_scanned}</b><span>items checked</span></div>
+      <div><b>${r.vcs_done}/${r.vcs_total}</b><span>investors · AI: ${esc(modelsOf(r))}${r.sources && r.sources.cost_usd != null ? ` · cost $${(+r.sources.cost_usd).toFixed(4)} (${(r.sources.tokens || 0).toLocaleString()} tokens)` : ""}</span></div><div><b>${r.items_scanned}</b><span>items checked</span></div>
       <div><b>${r.signals_kept}</b><span>signals kept</span></div><div><b style="color:var(--hot)">${r.hot_count}</b><span>reach out</span></div>
       <div><b style="color:var(--park)">${r.quiet_count}</b><span>quiet</span></div><div>${safe}</div>
       ${r.sources && r.sources.per_source ? `<div class="srcrow">Live sources this run: ${Object.entries(r.sources.per_source).map(([k, [n, kept]]) => `<span>${esc(ORIGIN[k] || k)} <b>${n}</b> items → ${kept} kept</span>`).join("")}</div>` : ""}</div>`;

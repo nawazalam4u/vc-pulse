@@ -191,6 +191,8 @@ def fallback_hook(vc, counted):
     best = sorted(counted, key=lambda k: (k["actor"] != "person" and k.get("angle") != "thesis", -k["points"]))[0]
     who = "your" if best["actor"] == "person" else re.sub(r"\s*\(.*\)", "", vc["firm"]).strip() + "'s"
     verb = {"invested": "deal coverage", "wrote": "post", "said": "interview", "appeared": "event appearance"}.get(best["kind"], "news")
+    if best.get("origin") == "blog":
+        verb = "post"
     if best.get("angle") == "thesis":
         verb = {"wrote": "post on", "said": "comments on", "appeared": "talk on"}.get(best["kind"], "view on")
     return 'Saw %s %s "%s" (%s)' % (who, verb, best["title"][:90], short_date(best["published"]))
@@ -440,7 +442,6 @@ def process(run_id, vc_ids, workers=8, judge_size=10):
     if not vc_ids:
         return []
     vcs = _db.q("select * from vcs where id = any($1::int[]) order by id", [list(vc_ids)])
-    _gemini.USED.clear()
     today = _sources.today()
 
     with ThreadPoolExecutor(max_workers=workers) as ex:
@@ -579,6 +580,11 @@ def process(run_id, vc_ids, workers=8, judge_size=10):
 
 def finish_run(run_id):
     fp = _db.q(FINGERPRINT)[0]
+    src = _db.q("select sources from runs where id = $1", [run_id])
+    src = (src[0]["sources"] if src else None) or {}
+    src = json.loads(src) if isinstance(src, str) else src
+    cost = sum(float((v or {}).get("usd", 0)) for k, v in src.items() if k.startswith("cost_batch"))
+    tokens = sum(int((v or {}).get("tokens", 0)) for k, v in src.items() if k.startswith("cost_batch"))
     per = _db.q("select origin, count(*) as n, count(*) filter (where about_vc and not coalesce(dup, false) and points >= 4) as kept "
                 "from signals where run_id = $1 group by origin", [run_id])
     errs = _db.q("select count(*) as n from jsonb_array_elements(coalesce((select log from runs where id = $1), '[]'::jsonb))",
@@ -591,7 +597,7 @@ def finish_run(run_id):
           [run_id, fp["h"], json.dumps({"gemini_search": _sources.SEARCH_STATE["available"],
                                         "model": _gemini.LAST["model"], "models_used": _gemini.USED,
                                         "per_source": {r["origin"]: [int(r["n"]), int(r["kept"])] for r in per},
-                                        "log_entries": int(errs)})])
+                                        "log_entries": int(errs), "cost_usd": round(cost, 5), "tokens": tokens})])
     return _db.q("select * from runs where id = $1", [run_id])[0]
 
 
@@ -599,6 +605,8 @@ def run_all(trigger="cron"):
     rid, fresh = start_run(trigger)
     if not fresh:
         return {"run_id": rid, "status": "already running"}
+    _gemini.USED.clear()
+    _gemini.COST.update(usd=0.0, tokens=0)
     ids = [r["id"] for r in _db.q("select id from vcs order by id")]
     chunks = [ids[i:i + 10] for i in range(0, len(ids), 10)]
     started, report = time.time(), []
@@ -611,5 +619,7 @@ def run_all(trigger="cron"):
     with ThreadPoolExecutor(max_workers=5) as ex:  # all 5 batches at once: a full run takes about a minute
         for r in ex.map(work, chunks):
             report += r
+    _db.q("update runs set sources = coalesce(sources, '{}'::jsonb) || $2::jsonb where id = $1",
+          [rid, json.dumps({"cost_batch_cron": dict(_gemini.COST), "models_used_batch_cron": dict(_gemini.USED)})])
     run = finish_run(rid)
     return {"run_id": rid, "run": run, "report": report}

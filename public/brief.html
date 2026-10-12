@@ -102,8 +102,14 @@
 <p>Every item keeps its <b>URL and the source's own publish date</b>. Anything older than 30 days is dropped before the AI sees it.</p>
 
 <h2 id="score">7 · Scoring (explainable by design)</h2>
-<p><b>Signal points</b> = type weight (invested 40 · wrote 34 · spoke 30 · event 26 · in the news 14) × topic fit (logistics 1.0 · adjacent B2B 0.6 · general 0.3) × who acted (the partner 1.0 · only their firm 0.85) × freshness (100% for 7 days, fading to 40% at day 30).<br>
-<b>Signal strength</b> = best + 40% of 2nd + 20% of 3rd, capped at 70. <b>Thesis fit</b> +3 / +8 / +15. <b>Timing</b> (from Vikram's own columns, read-only): followed up &lt;7 days ago −30 (don't pester), 7-13 days −10, waiting 14+ days with a fresh signal +10 (perfect nudge), not contacted yet with a fresh signal +10.<br>
+<p><b>A past investment in the same space is not, by itself, a reason to invest again.</b> If the company is a direct competitor, the investor is usually <i>less</i> likely to back Haulr; if it is adjacent, it shows conviction but proves nothing about a new slot. So each signal is weighted by what it <b>means</b> for Haulr:</p>
+<table class="mini"><tr><th>Meaning (Gemini labels, code checks)</th><th>Weight</th><th>Why</th></tr>
+<tr><td>🎯 Thesis: they say/write they want logistics or supply-chain software</td><td>42</td><td>An open invitation; the clearest sign they want more deals like Haulr (general SaaS writing doesn't count)</td></tr>
+<tr><td>🚀 Deploying: new early-stage cheques right now (new fund, bigger seed cheques, new cohort)</td><td>34</td><td>Allocation is open at Haulr's stage</td></tr>
+<tr><td>🤝 Complement: backed an adjacent, non-competing company</td><td>26</td><td>Conviction + a partnership/warm-intro angle, nothing more</td></tr>
+<tr><td>👀 Visible: publicly active on other topics</td><td>10</td><td>Reachable this week</td></tr>
+<tr><td>⚠️ Overlap: backed a direct competitor</td><td>0, and −15</td><td>Usually a no: VCs rarely fund a portfolio company's rival</td></tr></table>
+<p><b>Signal points</b> = meaning weight × topic fit × who acted (the partner 1.0 · their firm 0.85) × freshness (100% for 7 days, fading to 40% at day 30). <b>Signal strength</b> = best + 40% of 2nd + 20% of 3rd, capped at 70. <b>Fit</b> (who is likely to meet an Indian seed company?): thesis +3 / +8 / +15 · India-based +10 · not India-based with no sign of India investing −5 · US-only/other-market mandate −15 · seed/early confirmed +5 · later-stage only −8 (geography/stage flags come from Gemini, so its caveats change the score, not just the text). <b>Timing</b> (from Vikram's own columns, read-only): followed up &lt;7 days ago −30 (don't pester), 7-13 days −10, waiting 14+ days with a fresh signal +10 (perfect nudge), not contacted yet with a fresh signal +10.<br>
 <b>Actions:</b> followed up &lt;14 days ago → WAIT (hook saved for later) · score ≥ 55 → REACH OUT / NUDGE · 35-54 → WARM · weak/off-topic activity → LOW · no signal → PARK, worded by relationship ("waiting 60 days and quiet: one light check-in next month, or move on") and by how long they've been quiet (a 1-year lookback of news naming them <i>with</i> their firm separates "quiet this month" from "quiet for 3+ months"). Open any investor to see their maths.</p>
 
 <h2 id="eval">7b · How accurate is the AI? (measured, not claimed)</h2>
@@ -111,10 +117,11 @@
 <table class="mini"><tr><th>Question</th><th>Precision</th><th>Recall</th><th>Accuracy</th></tr>
 <tr><td>Is it really them / their firm?</td><td><b>100%</b> (no false claims)</td><td>89%</td><td>95%</td></tr>
 <tr><td>Is it about logistics? (on correct items)</td><td>100%</td><td>100%</td><td></td></tr></table>
-<p>Measured on the fallback model (gemini-3.5-flash-lite), i.e. the worst case. The design deliberately trades a little recall for precision: a missed signal costs Vikram little; a wrong one could embarrass him in front of an investor. The misses are headlines that don't name the investor, which our "evidence must name them" rule rejects on purpose.</p>
+<p>Measured on the fallback model (Gemini 3.5 Flash-Lite, before the gateway switch), i.e. the worst case. The design deliberately trades a little recall for precision: a missed signal costs Vikram little; a wrong one could embarrass him in front of an investor. The misses are headlines that don't name the investor, which our "evidence must name them" rule rejects on purpose.</p>
 
 <h2 id="security">7c · Reliability and security</h2>
 <ul>
+  <li><b>AI gateway:</b> all Gemini calls go through the institute's OpenRouter key, Google models only (Gemini 3.7 Flash → 3.8 Flash → 3.5 Flash-Lite), served only by Google's infrastructure (no fallback to other vendors), retried with backoff on 429/5xx, stopped cleanly on 402 (out of credits). Each run records its real AI cost.</li>
   <li><b>One run at a time</b>, enforced by a unique index in Postgres; the scheduled Monday/Thursday run always takes priority over a half-finished manual run.</li>
   <li><b>Run tickets:</b> only the caller who started a run can continue it (HMAC token), so nobody can burn the AI quota through someone else's run.</li>
   <li><b>Never "quiet" by accident:</b> if a news source or the AI fails for an investor, they keep last run's verdict and the run log records it. The run is marked "partial", never silently "done".</li>

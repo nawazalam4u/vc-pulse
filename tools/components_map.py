@@ -7,7 +7,7 @@ W0, CW, HY, RY, RH = 180, 236, 74, 132, 150
 COLS = ["Trigger", "Input", "Context", "Processing", "AI", "Output"]
 ROWS = [("Founder", "(Vikram · User)", "#eef4ff"), ("Scheduler", "(Vercel Cron)", "#f4f0ff"),
         ("System", "(Python backend on Vercel)", "#fff8e6"), ("Live data", "(News RSS · blogs · podcasts)", "#eafaf1"),
-        ("AI Model", "(Gemini Flash)", "#fdeef5"), ("Database", "(Neon Postgres)", "#eaf6fb")]
+        ("AI Model", "(Gemini Flash · OpenRouter)", "#fdeef5"), ("Database", "(Neon Postgres)", "#eaf6fb")]
 W = W0 + CW * 6 + 20
 H = RY + RH * 6 + 70
 BW, BH = 204, 104
@@ -67,9 +67,9 @@ box(1, 0, ["Edits own columns:", "status, last contact,", "notes, contact histor
 box(1, 5, ["Reads Vikram's table", "50 VCs: name, firm,", "thesis, status,", "last contact date"], *B)
 box(2, 3, ["Fetches last 30 days", "Google News: person", "Google News: firm deals", "blog RSS · podcasts"], *G)
 box(3, 2, ["Filters & checks", "real link + date ≤ 30d", "de-dup · per-source caps", "outage → keep verdict"], *O)
-box(4, 4, ["Gemini Flash judges", "who acted · what kind", "logistics fit 0-3 · event", "WHY it matters + hook"], *K)
-box(4, 2, ["Code verifies AI", "names them? author?", "logistics word? conflict?", "1 event = 1 signal"], *O)
-box(5, 2, ["Score 0-100 + action", "signal × fit × freshness", "+ thesis + timing", "REACH OUT … PARK"], *O)
+box(4, 4, ["Gemini 3.7 Flash judges", "who acted · what it MEANS", "thesis/deploying/complement", "WHY it matters + fit flags"], *K)
+box(4, 2, ["Code verifies AI", "names them? author?", "thesis on-topic? overlap?", "1 event = 1 signal"], *O)
+box(5, 2, ["Score 0-100 + action", "meaning × fit × freshness", "+ India/seed fit + timing", "REACH OUT … PARK"], *O)
 box(5, 5, ["UPDATE only 4 columns", "last_signal_date · summary", "follow_up_score · action", "notes locked (pulse_engine)"], *T)
 box(5, 0, ["Dashboard: who to", "pitch this week + why", "+ clickable evidence", "HUMAN GATE: Vikram sends"], *R)
 box(5, 4, ["Email draft on request", "cites the real signal", "no invented traction", "(draft only, never sent)"], *K)
@@ -94,7 +94,7 @@ out += ['<text x="20" y="%d" font-size="13" fill="#3b4a7a">Dashed arrows = data 
         'Vikram\'s columns; only the engine login can change the 4 signal columns (enforced by Postgres). '
         'Nothing is ever emailed automatically.</text>' % ly,
         '<text x="20" y="%d" font-size="13" fill="#3b4a7a">Live: vc-pulse-lime.vercel.app · Code: github.com/nawazalam4u/vc-pulse · '
-        'Gemini 3.5 Flash → 3.5 Flash-Lite → 3.1 Flash-Lite (automatic fallback)</text>' % (ly + 22), '</svg>']
+        'Gemini 3.7 Flash → 3.8 Flash → 3.5 Flash-Lite via the course OpenRouter gateway (Google infrastructure only)</text>' % (ly + 22), '</svg>']
 svg = "\n".join(out)
 open(os.path.join(ROOT, "docs/components-map.svg"), "w").write(svg)
 open(os.path.join(ROOT, "docs/components-map-grid.html"), "w").write(

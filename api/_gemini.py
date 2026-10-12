@@ -74,7 +74,8 @@ def generate(prompt, schema=None, system=None, temperature=0.2, timeout=90, tool
                 if not text.strip():
                     raise RuntimeError("%s: empty reply" % model)
                 u = resp.get("usage") or {}
-                COST["usd"] += float(u.get("cost") or 0)
+                # with the institute's bring-your-own-key setup the real Google cost is in cost_details
+                COST["usd"] += float(u.get("cost") or (u.get("cost_details") or {}).get("upstream_inference_cost") or 0)
                 COST["tokens"] += int(u.get("total_tokens") or 0)
                 LAST["model"] = model
                 USED[model] = USED.get(model, 0) + 1

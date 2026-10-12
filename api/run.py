@@ -44,9 +44,13 @@ class handler(BaseHTTPRequestHandler):
                 return _http.send(self, {"error": "This run was stopped (the scheduled run takes priority)."}, 409)
             if act == "batch":
                 ids = [int(x) for x in (b.get("ids") or []) if str(x).isdigit()][:10]
+                _gemini.USED.clear()
+                _gemini.COST.update(usd=0.0, tokens=0)
                 rep = _engine.process(rid, ids, workers=10, judge_size=10)
-                _db.q("update runs set sources = coalesce(sources, '{}'::jsonb) || $2::jsonb where id = $1",
-                      [rid, json.dumps({"models_used_batch_%d" % ids[0]: _gemini.USED})]) if ids else None
+                if ids:
+                    _db.q("update runs set sources = coalesce(sources, '{}'::jsonb) || $2::jsonb where id = $1",
+                          [rid, json.dumps({"models_used_batch_%d" % ids[0]: dict(_gemini.USED),
+                                            "cost_batch_%d" % ids[0]: dict(_gemini.COST)})])
                 return _http.send(self, {"report": rep})
             if act == "finish":
                 return _http.send(self, {"run": _engine.finish_run(rid)})
