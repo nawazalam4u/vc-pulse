@@ -21,7 +21,8 @@ def sig(kind, rel, days, actor="person", angle=None):
 
 def act(vc, signals, hook="Saw your post", rel=3):
     total, bd, strength, days = e.score(vc, signals, T)
-    return total, e.action_for(vc, total, strength, days, hook, {"relevance": rel} if signals else None, T, None)
+    best = {"relevance": rel, "angle": signals[0].get("angle")} if signals else None
+    return total, e.action_for(vc, total, strength, days, hook, best, T, None)
 
 
 checks = []
@@ -114,6 +115,13 @@ cold = e.action_for(IN3, max(tot, 60), st, dd, "Saw X", {"relevance": 1}, T, Non
 warm_f = e.action_for(dict(IN3, status="waiting_response", last_contact_date="2026-09-10"), max(tot, 60), st, 31, "Saw X", {"relevance": 1}, T, None)
 check("cold REACH OUT needs an on-topic reason; an off-topic deal stays WARM", cold.startswith("WARM"))
 check("a follow-up (NUDGE) only needs a timely reason", warm_f.startswith("NUDGE"))
+
+check("'deeptech must scale' is not a logistics thesis (code reads the source text)",
+      e.check_angle("thesis", "said", 2, "Avaana's Anjali Bansal explains why deeptech must scale") == "visible")
+check("'why now is the time to build industrial giants' counts as an adjacent thesis",
+      e.check_angle("thesis", "said", 2, "Lior Susan on Why Now Is the Time to Build Industrial Giants") == "thesis")
+dep_only = e.action_for(IN3, 70, 40, None, "Saw X", {"relevance": 2, "angle": "deploying"}, T, None)
+check("deploying in another sector, even 'adjacent', is not a cold-email reason", dep_only.startswith("WARM"))
 
 for n, ok in checks:
     print("PASS" if ok else "FAIL", "-", n)

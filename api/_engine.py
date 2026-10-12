@@ -253,7 +253,10 @@ def names_them(vc, item, kind):
     return named
 
 
-def check_angle(angle, kind, rel=3):
+ADJACENT_WORDS = re.compile(LOGISTICS_WORDS.pattern + r"|industrial|physical|manufactur|mobility|operations|infrastructure", re.I)
+
+
+def check_angle(angle, kind, rel=3, text=None):
     """Code checks the AI's reading: a thesis is something they SAID about Haulr's space (not a deal, not off-topic);
     an overlap must be an investment."""
     angle = angle if angle in ANGLE_W else "none"
@@ -261,6 +264,8 @@ def check_angle(angle, kind, rel=3):
         return "complement"
     if angle == "thesis" and rel <= 1:
         return "visible"
+    if angle == "thesis" and text is not None and not ADJACENT_WORDS.search(text):
+        return "visible"  # a thesis must be ABOUT Haulr's world, in the source's own words
     if angle == "overlap" and kind != "invested":
         return "complement"
     return angle
@@ -395,8 +400,10 @@ def action_for(vc, total, strength, days, hook, best, today, last_any, mention=N
     lead = hook or (best and best.get("summary")) or "reference their recent activity"
     if total >= 55:
         # a FIRST email needs an on-topic reason; a follow-up only needs a timely one
-        if status != "waiting_response" and (best is None or int(best.get("relevance") or 0) < 2):
-            return "WARM · Active and a good fit, but nothing on logistics yet, so not a cold-email moment. %s" % lead
+        rel = int((best or {}).get("relevance") or 0)
+        on_topic = rel >= 3 or (rel >= 2 and (best or {}).get("angle") in ("thesis", "complement"))
+        if status != "waiting_response" and not on_topic:
+            return "WARM · Active and a good fit, but no logistics hook yet, so not a cold-email moment. %s" % lead
         verb = "NUDGE" if status == "waiting_response" else "REACH OUT"
         return "%s · This week. %s" % (verb, lead)
     if total >= 35:
@@ -475,7 +482,7 @@ def process(run_id, vc_ids, workers=8, judge_size=10):
             if not names_them(vc, it, kind):
                 continue
             j = dict(j, actor=blog_actor(vc, it, j["actor"]))
-            angle = check_angle(j.get("angle"), kind, rel)
+            angle = check_angle(j.get("angle"), kind, rel, it.get("title", "") + " " + it.get("snippet", ""))
             attributed.append(dict(it, angle=angle, kind=kind))
             days = (today - _d(it["published"])).days
             p = signal_points(angle, rel, j["actor"], days)
