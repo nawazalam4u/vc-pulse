@@ -1,0 +1,130 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1616" height="1102" viewBox="0 0 1616 1102" font-family="-apple-system,Helvetica,Arial,sans-serif">
+<defs><marker id="a" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto"><path d="M0 0L10 5L0 10z" fill="#1d2a5b"/></marker></defs>
+<rect width="100%" height="100%" fill="#fff"/>
+<text x="808" y="44" text-anchor="middle" font-size="28" font-weight="700" fill="#16224f">VC Pulse · VC Fundraising Pipeline Intelligence — Components Map</text>
+<rect x="10" y="74" width="1596" height="58" rx="8" fill="#16224f"/>
+<text x="95" y="110" text-anchor="middle" font-size="18" font-weight="700" fill="#fff">Actor</text>
+<text x="298" y="110" text-anchor="middle" font-size="18" font-weight="700" fill="#fff">Trigger</text>
+<text x="534" y="110" text-anchor="middle" font-size="18" font-weight="700" fill="#fff">Input</text>
+<text x="770" y="110" text-anchor="middle" font-size="18" font-weight="700" fill="#fff">Context</text>
+<text x="1006" y="110" text-anchor="middle" font-size="18" font-weight="700" fill="#fff">Processing</text>
+<text x="1242" y="110" text-anchor="middle" font-size="18" font-weight="700" fill="#fff">AI</text>
+<text x="1478" y="110" text-anchor="middle" font-size="18" font-weight="700" fill="#fff">Output</text>
+<rect x="180" y="132" width="1416" height="150" fill="#eef4ff"/>
+<rect x="10" y="132" width="170" height="150" fill="#16224f"/>
+<text x="95" y="203" text-anchor="middle" font-size="19" font-weight="700" fill="#fff">Founder</text>
+<text x="95" y="225" text-anchor="middle" font-size="12.5" fill="#c9d3f2">(Vikram · User)</text>
+<line x1="10" y1="132" x2="1606" y2="132" stroke="#fff" stroke-width="2"/>
+<rect x="180" y="282" width="1416" height="150" fill="#f4f0ff"/>
+<rect x="10" y="282" width="170" height="150" fill="#16224f"/>
+<text x="95" y="353" text-anchor="middle" font-size="19" font-weight="700" fill="#fff">Scheduler</text>
+<text x="95" y="375" text-anchor="middle" font-size="12.5" fill="#c9d3f2">(Vercel Cron)</text>
+<line x1="10" y1="282" x2="1606" y2="282" stroke="#fff" stroke-width="2"/>
+<rect x="180" y="432" width="1416" height="150" fill="#fff8e6"/>
+<rect x="10" y="432" width="170" height="150" fill="#16224f"/>
+<text x="95" y="503" text-anchor="middle" font-size="19" font-weight="700" fill="#fff">System</text>
+<text x="95" y="525" text-anchor="middle" font-size="12.5" fill="#c9d3f2">(Python backend on Vercel)</text>
+<line x1="10" y1="432" x2="1606" y2="432" stroke="#fff" stroke-width="2"/>
+<rect x="180" y="582" width="1416" height="150" fill="#eafaf1"/>
+<rect x="10" y="582" width="170" height="150" fill="#16224f"/>
+<text x="95" y="653" text-anchor="middle" font-size="19" font-weight="700" fill="#fff">Live data</text>
+<text x="95" y="675" text-anchor="middle" font-size="12.5" fill="#c9d3f2">(News RSS · blogs · podcasts)</text>
+<line x1="10" y1="582" x2="1606" y2="582" stroke="#fff" stroke-width="2"/>
+<rect x="180" y="732" width="1416" height="150" fill="#fdeef5"/>
+<rect x="10" y="732" width="170" height="150" fill="#16224f"/>
+<text x="95" y="803" text-anchor="middle" font-size="19" font-weight="700" fill="#fff">AI Model</text>
+<text x="95" y="825" text-anchor="middle" font-size="12.5" fill="#c9d3f2">(Gemini Flash)</text>
+<line x1="10" y1="732" x2="1606" y2="732" stroke="#fff" stroke-width="2"/>
+<rect x="180" y="882" width="1416" height="150" fill="#eaf6fb"/>
+<rect x="10" y="882" width="170" height="150" fill="#16224f"/>
+<text x="95" y="953" text-anchor="middle" font-size="19" font-weight="700" fill="#fff">Database</text>
+<text x="95" y="975" text-anchor="middle" font-size="12.5" fill="#c9d3f2">(Neon Postgres)</text>
+<line x1="10" y1="882" x2="1606" y2="882" stroke="#fff" stroke-width="2"/>
+<line x1="416" y1="132" x2="416" y2="1032" stroke="#fff" stroke-width="2"/>
+<line x1="652" y1="132" x2="652" y2="1032" stroke="#fff" stroke-width="2"/>
+<line x1="888" y1="132" x2="888" y2="1032" stroke="#fff" stroke-width="2"/>
+<line x1="1124" y1="132" x2="1124" y2="1032" stroke="#fff" stroke-width="2"/>
+<line x1="1360" y1="132" x2="1360" y2="1032" stroke="#fff" stroke-width="2"/>
+<rect x="196" y="155" width="204" height="104" rx="10" fill="#efeaff" stroke="#8b6cf6" stroke-width="2.4"/>
+<text x="298" y="192.0" text-anchor="middle" font-size="13.4" font-weight="700" fill="#14122b">Clicks “Refresh</text>
+<text x="298" y="211.0" text-anchor="middle" font-size="13.4" fill="#14122b">signals now”</text>
+<text x="298" y="230.0" text-anchor="middle" font-size="13.4" fill="#14122b">(optional, any time)</text>
+<rect x="196" y="305" width="204" height="104" rx="10" fill="#efeaff" stroke="#8b6cf6" stroke-width="2.4"/>
+<text x="298" y="332.5" text-anchor="middle" font-size="13.4" font-weight="700" fill="#14122b">Cron fires</text>
+<text x="298" y="351.5" text-anchor="middle" font-size="13.4" fill="#14122b">Mon + Thu, 07:00 IST</text>
+<text x="298" y="370.5" text-anchor="middle" font-size="13.4" fill="#14122b">/api/cron (secret)</text>
+<text x="298" y="389.5" text-anchor="middle" font-size="13.4" fill="#14122b">one run at a time</text>
+<rect x="432" y="155" width="204" height="104" rx="10" fill="#e8f0ff" stroke="#3b82f6" stroke-width="2.4"/>
+<text x="534" y="182.5" text-anchor="middle" font-size="13.4" font-weight="700" fill="#14122b">Edits own columns:</text>
+<text x="534" y="201.5" text-anchor="middle" font-size="13.4" fill="#14122b">status, last contact,</text>
+<text x="534" y="220.5" text-anchor="middle" font-size="13.4" fill="#14122b">notes, contact history</text>
+<text x="534" y="239.5" text-anchor="middle" font-size="13.4" fill="#14122b">(pulse_founder login)</text>
+<rect x="432" y="905" width="204" height="104" rx="10" fill="#e8f0ff" stroke="#3b82f6" stroke-width="2.4"/>
+<text x="534" y="932.5" text-anchor="middle" font-size="13.4" font-weight="700" fill="#14122b">Reads Vikram's table</text>
+<text x="534" y="951.5" text-anchor="middle" font-size="13.4" fill="#14122b">50 VCs: name, firm,</text>
+<text x="534" y="970.5" text-anchor="middle" font-size="13.4" fill="#14122b">thesis, status,</text>
+<text x="534" y="989.5" text-anchor="middle" font-size="13.4" fill="#14122b">last contact date</text>
+<rect x="668" y="605" width="204" height="104" rx="10" fill="#e7f8ee" stroke="#22a565" stroke-width="2.4"/>
+<text x="770" y="632.5" text-anchor="middle" font-size="13.4" font-weight="700" fill="#14122b">Fetches last 30 days</text>
+<text x="770" y="651.5" text-anchor="middle" font-size="13.4" fill="#14122b">Google News: person</text>
+<text x="770" y="670.5" text-anchor="middle" font-size="13.4" fill="#14122b">Google News: firm deals</text>
+<text x="770" y="689.5" text-anchor="middle" font-size="13.4" fill="#14122b">blog RSS · podcasts</text>
+<rect x="904" y="455" width="204" height="104" rx="10" fill="#fff4dd" stroke="#f59e0b" stroke-width="2.4"/>
+<text x="1006" y="482.5" text-anchor="middle" font-size="13.4" font-weight="700" fill="#14122b">Filters & checks</text>
+<text x="1006" y="501.5" text-anchor="middle" font-size="13.4" fill="#14122b">real link + date ≤ 30d</text>
+<text x="1006" y="520.5" text-anchor="middle" font-size="13.4" fill="#14122b">de-dup · per-source caps</text>
+<text x="1006" y="539.5" text-anchor="middle" font-size="13.4" fill="#14122b">outage → keep verdict</text>
+<rect x="1140" y="755" width="204" height="104" rx="10" fill="#fde8f1" stroke="#e0408a" stroke-width="2.4"/>
+<text x="1242" y="782.5" text-anchor="middle" font-size="13.4" font-weight="700" fill="#14122b">Gemini Flash judges</text>
+<text x="1242" y="801.5" text-anchor="middle" font-size="13.4" fill="#14122b">who acted · what kind</text>
+<text x="1242" y="820.5" text-anchor="middle" font-size="13.4" fill="#14122b">logistics fit 0-3 · event</text>
+<text x="1242" y="839.5" text-anchor="middle" font-size="13.4" fill="#14122b">WHY it matters + hook</text>
+<rect x="1140" y="455" width="204" height="104" rx="10" fill="#fff4dd" stroke="#f59e0b" stroke-width="2.4"/>
+<text x="1242" y="482.5" text-anchor="middle" font-size="13.4" font-weight="700" fill="#14122b">Code verifies AI</text>
+<text x="1242" y="501.5" text-anchor="middle" font-size="13.4" fill="#14122b">names them? author?</text>
+<text x="1242" y="520.5" text-anchor="middle" font-size="13.4" fill="#14122b">logistics word? conflict?</text>
+<text x="1242" y="539.5" text-anchor="middle" font-size="13.4" fill="#14122b">1 event = 1 signal</text>
+<rect x="1376" y="455" width="204" height="104" rx="10" fill="#fff4dd" stroke="#f59e0b" stroke-width="2.4"/>
+<text x="1478" y="482.5" text-anchor="middle" font-size="13.4" font-weight="700" fill="#14122b">Score 0-100 + action</text>
+<text x="1478" y="501.5" text-anchor="middle" font-size="13.4" fill="#14122b">signal × fit × freshness</text>
+<text x="1478" y="520.5" text-anchor="middle" font-size="13.4" fill="#14122b">+ thesis + timing</text>
+<text x="1478" y="539.5" text-anchor="middle" font-size="13.4" fill="#14122b">REACH OUT … PARK</text>
+<rect x="1376" y="905" width="204" height="104" rx="10" fill="#e3f7fb" stroke="#0e9fb8" stroke-width="2.4"/>
+<text x="1478" y="932.5" text-anchor="middle" font-size="13.4" font-weight="700" fill="#14122b">UPDATE only 4 columns</text>
+<text x="1478" y="951.5" text-anchor="middle" font-size="13.4" fill="#14122b">last_signal_date · summary</text>
+<text x="1478" y="970.5" text-anchor="middle" font-size="13.4" fill="#14122b">follow_up_score · action</text>
+<text x="1478" y="989.5" text-anchor="middle" font-size="13.4" fill="#14122b">notes locked (pulse_engine)</text>
+<rect x="1376" y="155" width="204" height="104" rx="10" fill="#ffe9e9" stroke="#ef4444" stroke-width="2.4"/>
+<text x="1478" y="182.5" text-anchor="middle" font-size="13.4" font-weight="700" fill="#14122b">Dashboard: who to</text>
+<text x="1478" y="201.5" text-anchor="middle" font-size="13.4" fill="#14122b">pitch this week + why</text>
+<text x="1478" y="220.5" text-anchor="middle" font-size="13.4" fill="#14122b">+ clickable evidence</text>
+<text x="1478" y="239.5" text-anchor="middle" font-size="13.4" fill="#14122b">HUMAN GATE: Vikram sends</text>
+<rect x="1376" y="755" width="204" height="104" rx="10" fill="#fde8f1" stroke="#e0408a" stroke-width="2.4"/>
+<text x="1478" y="782.5" text-anchor="middle" font-size="13.4" font-weight="700" fill="#14122b">Email draft on request</text>
+<text x="1478" y="801.5" text-anchor="middle" font-size="13.4" fill="#14122b">cites the real signal</text>
+<text x="1478" y="820.5" text-anchor="middle" font-size="13.4" fill="#14122b">no invented traction</text>
+<text x="1478" y="839.5" text-anchor="middle" font-size="13.4" fill="#14122b">(draft only, never sent)</text>
+<path d="M298.0 259.0 L298.0 305.0" fill="none" stroke="#1d2a5b" stroke-width="2" stroke-dasharray="7 5" marker-end="url(#a)"/>
+<text x="304" y="285" font-size="12" font-style="italic" fill="#3b4a7a">manual run</text>
+<path d="M400.0 357.0 L494.0 357.0 L494.0 905.0" fill="none" stroke="#1d2a5b" stroke-width="2" stroke-dasharray="7 5" marker-end="url(#a)"/>
+<text x="408" y="349" font-size="12" font-style="italic" fill="#3b4a7a">auto run</text>
+<path d="M574.0 259.0 L574.0 905.0" fill="none" stroke="#1d2a5b" stroke-width="2" stroke-dasharray="7 5" marker-end="url(#a)"/>
+<text x="580" y="467" font-size="12" font-style="italic" fill="#3b4a7a">his edits only</text>
+<path d="M636.0 957.0 L770.0 957.0 L770.0 709.0" fill="none" stroke="#1d2a5b" stroke-width="2" stroke-dasharray="7 5" marker-end="url(#a)"/>
+<text x="644" y="949" font-size="12" font-style="italic" fill="#3b4a7a">50 investors</text>
+<path d="M872.0 657.0 L966.0 657.0 L966.0 559.0" fill="none" stroke="#1d2a5b" stroke-width="2" stroke-dasharray="7 5" marker-end="url(#a)"/>
+<text x="878" y="649" font-size="12" font-style="italic" fill="#3b4a7a">~400 items</text>
+<path d="M1046.0 559.0 L1046.0 807.0 L1140.0 807.0" fill="none" stroke="#1d2a5b" stroke-width="2" stroke-dasharray="7 5" marker-end="url(#a)"/>
+<text x="1052" y="799" font-size="12" font-style="italic" fill="#3b4a7a">10 VCs per call</text>
+<path d="M1242.0 755.0 L1242.0 559.0" fill="none" stroke="#1d2a5b" stroke-width="2" stroke-dasharray="7 5" marker-end="url(#a)"/>
+<text x="1248" y="661" font-size="12" font-style="italic" fill="#3b4a7a">JSON verdicts</text>
+<path d="M1344.0 507.0 L1376.0 507.0" fill="none" stroke="#1d2a5b" stroke-width="2" stroke-dasharray="7 5" marker-end="url(#a)"/>
+<path d="M1518.0 559.0 L1518.0 657.0 L1589.0 657.0 L1589.0 889.0 L1538.0 889.0 L1538.0 905.0" fill="none" stroke="#1d2a5b" stroke-width="2" stroke-dasharray="7 5" marker-end="url(#a)"/>
+<text x="1524" y="649" font-size="12" font-style="italic" fill="#3b4a7a">writes</text>
+<path d="M1478.0 455.0 L1478.0 259.0" fill="none" stroke="#1d2a5b" stroke-width="2" stroke-dasharray="7 5" marker-end="url(#a)"/>
+<text x="1484" y="357" font-size="12" font-style="italic" fill="#3b4a7a">shows</text>
+<path d="M1428.0 259.0 L1428.0 281.0 L1367.0 281.0 L1367.0 739.0 L1428.0 739.0 L1428.0 755.0" fill="none" stroke="#1d2a5b" stroke-width="2" stroke-dasharray="7 5" marker-end="url(#a)"/>
+<text x="1432" y="733" font-size="12" font-style="italic" fill="#3b4a7a">clicks “Draft email”</text>
+<text x="20" y="1064" font-size="13" fill="#3b4a7a">Dashed arrows = data flow. Only the founder login can change Vikram's columns; only the engine login can change the 4 signal columns (enforced by Postgres). Nothing is ever emailed automatically.</text>
+<text x="20" y="1086" font-size="13" fill="#3b4a7a">Live: vc-pulse-lime.vercel.app · Code: github.com/nawazalam4u/vc-pulse · Gemini 3.5 Flash → 3.5 Flash-Lite → 3.1 Flash-Lite (automatic fallback)</text>
+</svg>
