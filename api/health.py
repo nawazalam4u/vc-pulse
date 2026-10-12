@@ -14,7 +14,7 @@ import _sources
 
 class handler(BaseHTTPRequestHandler):
     def do_GET(self):
-        out = {"ok": True, "gemini": _gemini.configured(), "gateway": "OpenRouter -> Google (google-vertex / google-ai-studio only)", "models": _gemini.MODELS,
+        out = {"ok": True, "version": os.environ.get("VERCEL_GIT_COMMIT_SHA", "local")[:7], "gemini": _gemini.configured(), "gateway": "OpenRouter -> Google (google-vertex / google-ai-studio only)", "models": _gemini.MODELS,
                "database": {r: _db.configured(r) for r in ("engine", "founder")},
                "owner_login_on_server": bool(os.environ.get("DATABASE_URL")),
                "cron_secret": bool(os.environ.get("CRON_SECRET")), "editor_key": bool(os.environ.get("DASHBOARD_KEY")),

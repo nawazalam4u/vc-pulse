@@ -267,7 +267,7 @@ def check_angle(angle, kind, rel=3):
 def signal_points(angle, rel, actor, days):
     """Weight by what the signal MEANS (angle) x topic fit x who acted x freshness."""
     # deploying = open allocation; it counts fully only when the new cheques are in or near Haulr's space
-    topic = {3: 1.0, 2: 0.5}.get(rel, 0.0) if angle == "thesis" else REL_M[rel] if angle == "complement" else ({3: 1.0, 2: 0.8}.get(rel, 0.4) if angle == "deploying" else 1.0)
+    topic = {3: 1.0, 2: 0.5}.get(rel, 0.0) if angle == "thesis" else REL_M[rel] if angle == "complement" else ({3: 1.0, 2: 0.8, 1: 0.6}.get(rel, 0.3) if angle == "deploying" else 1.0)
     return ANGLE_W.get(angle, 0) * topic * ACTOR_M.get(actor, 0.85) * recency(days)
 
 
@@ -276,7 +276,7 @@ def recency(days):
 
 
 def geo_fit(region):
-    return (5, "India-based: invests in Haulr's home market") if "india" in (region or "").lower() else (0, "")
+    return (10, "India-based: invests in Haulr's home market") if "india" in (region or "").lower() else (0, "")
 
 
 def thesis_fit(thesis):
@@ -297,11 +297,18 @@ def next_run_day(today):
 
 
 def fit_penalties(vc, flags):
-    """Gemini's honest caveats change the score too: a mandate outside India or growth-only cheques are real blockers."""
+    """Gemini's honest caveats change the score too. Who is likely to take a meeting with an INDIAN SEED-stage company?"""
     out = []
-    if (flags or {}).get("geo_fit") == "mismatch" and "india" not in (vc.get("region") or "").lower():
-        out.append(["Gemini: mandate outside Haulr's market (India)", -10])
-    if (flags or {}).get("stage_fit") == "mismatch":
+    if not flags:
+        return out
+    indian = "india" in (vc.get("region") or "").lower()
+    if not indian and flags.get("geo_fit") == "mismatch":
+        out.append(["Gemini: mandate outside Haulr's market (India)", -15])
+    elif not indian and flags.get("geo_fit") == "unclear":
+        out.append(["Not India-based; no sign they back Indian startups", -5])
+    if flags.get("stage_fit") == "match":
+        out.append(["Gemini: invests at seed/early stage, like Haulr", 5])
+    elif flags.get("stage_fit") == "mismatch":
         out.append(["Gemini: invests later than seed", -8])
     return out
 

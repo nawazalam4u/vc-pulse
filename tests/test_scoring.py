@@ -38,7 +38,11 @@ check("thesis > deploying > complement > visible (what a signal means decides it
 check("an overlap (direct competitor) earns no positive points", e.signal_points("overlap", 3, "firm", 1) == 0)
 check("AI can't call a deal a 'thesis'; overlap must be a deal",
       e.check_angle("thesis", "invested") == "complement" and e.check_angle("overlap", "said") == "complement")
-check("India-based investors get the home-market fit", e.geo_fit("Bengaluru, India")[0] == 5 and e.geo_fit("Austin, USA")[0] == 0)
+check("India-based investors get the home-market fit", e.geo_fit("Bengaluru, India")[0] == 10 and e.geo_fit("Austin, USA")[0] == 0)
+IN2 = dict(LOGI, region="Bengaluru, India"); US2 = dict(LOGI, region="Austin, USA")
+dep = [sig("invested", 2, 3, "firm", angle="deploying")]
+check("same signal: an Indian seed investor outranks a US fund with unclear India appetite",
+      e.score(IN2, dep, T, "", {"geo_fit": "match", "stage_fit": "match"})[0] > e.score(US2, dep, T, "", {"geo_fit": "unclear", "stage_fit": "match"})[0])
 t, a = act(LOGI, [])
 check("no signal -> PARK, and mentions strong thesis fit", a.startswith("PARK") and "thesis fit" in a)
 t, a = act(dict(LOGI, status="waiting_response", last_contact_date="2026-10-08"), [sig("invested", 3, 1)])
@@ -98,7 +102,7 @@ check("an on-topic but adjacent thesis counts at half weight", e.signal_points("
 US = dict(LOGI, region="San Francisco, USA")
 s1 = e.score(US, [sig("said", 3, 2, angle="thesis")], T)[0]
 s2 = e.score(US, [sig("said", 3, 2, angle="thesis")], T, "", {"geo_fit": "mismatch", "stage_fit": "mismatch"})[0]
-check("Gemini's caveats change the score: US-only -10, later-stage -8", s1 - s2 == 18)
+check("Gemini's caveats change the score: US-only -15, later-stage -8", s1 - s2 == 23)
 IN = dict(LOGI, region="Bengaluru, India")
 check("an India-based investor is never penalised for geography",
       e.score(IN, [], T, "", {"geo_fit": "mismatch"})[0] == e.score(IN, [], T)[0])
