@@ -25,9 +25,14 @@ Vercel Cron (Mon/Thu 07:00 IST) or "Refresh now"
 See `db/roles.sql`. Every run stores an MD5 fingerprint of Vikram's columns before and after. The **Notes guard** tab has a live "attack my own database" button.
 
 ## Quality: measured, tested, audited
-- **Accuracy** (`tests/eval_judge.py`, 57 hand-labelled live items in `data/eval_gold.json`): attribution precision **100%**, recall **89%**, accuracy **95%**; logistics label 100%. Measured on the fallback model (worst case).
-- **Tests:** `tests/test_scoring.py` (22 rule checks, offline) · `tests/test_guard.py` (26 live permission checks).
+- **Accuracy** (`tests/eval_judge.py`, 57 hand-labelled live items in `data/eval_gold.json`): attribution precision **100%**, recall **85-89%** (varies by run), accuracy **93-95%**; logistics label 100%. Measured on the fallback model (worst case).
+- **Tests:** `tests/test_scoring.py` (22 rule checks, offline) · `tests/test_inputs.py` (9 input rules) · `tests/test_guard.py` (28 live permission checks).
 - **Safeguards:** evidence must name the investor; blog posts are author-checked; one event = one signal; hooks only from kept evidence; any source/AI failure keeps the last verdict (run marked `partial`); one run at a time (unique index) with HMAC run tickets; cron has priority and a 200 s budget; CSP and http(s)-only links; rate limits on public AI actions.
+
+## Personalisation
+- **LinkedIn without scraping:** an "in" button per investor opens the profile link Vikram saved (his own protected column, validated as `linkedin.com/in/...`) or LinkedIn's people search in his browser. Nothing is fetched from LinkedIn.
+- **Your pitch** (`/api/pitch`): one-liner, traction and ask, saved through the founder login and used by every draft.
+- **Drafts** return an email (Copy / Open in Gmail, never sent automatically) and a LinkedIn note under 300 characters.
 
 ## Project layout
 ```

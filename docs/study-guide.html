@@ -171,8 +171,8 @@ Vikram's list tells him <b>who</b> the investors are and <b>when he last spoke t
 <h2 class="pb">5 · How do we know it works? (accuracy, tests, runs)</h2>
 <div class="kpis">
   <div class="kpi"><div class="big">100%</div>precision: no false claims about who did what (57 hand-labelled items)</div>
-  <div class="kpi"><div class="big">89%</div>recall: found 24 of 27 real signals; misses were headlines that didn't name the investor</div>
-  <div class="kpi"><div class="big">68/68</div>automated tests pass (42 scoring rules + 26 database permissions)</div>
+  <div class="kpi"><div class="big">85-89%</div>recall across repeated runs (23-24 of 27 real signals); misses are headlines that don't name the investor</div>
+  <div class="kpi"><div class="big">80/80</div>automated tests pass (43 scoring rules + 9 input rules + 28 database permissions)</div>
   <div class="kpi"><div class="big">0</div>errors in the final live runs; notes fingerprint identical before and after every run</div>
 </div>
 <h3>Choosing the model with data (cheapest that does the job)</h3>
@@ -225,6 +225,14 @@ Vikram's list tells him <b>who</b> the investors are and <b>when he last spoke t
 <tr><td class="sev lo">Low</td><td>A GitHub-triggered Vercel build failed once (platform glitch)</td><td>Health endpoint reports the live commit; deploy script falls back to a direct Vercel deploy</td></tr>
 <tr><td class="sev lo">Known</td><td>Notes visible in the public demo</td><td>Deliberate so reviewers can verify; editing needs the private key; production would add login</td></tr>
 </table>
+
+<h2>6b · Personalisation and LinkedIn (added after submission)</h2>
+<ul>
+  <li><b>LinkedIn, with zero risk.</b> We never fetch, scrape or log into LinkedIn. Every investor has an <b>"in"</b> button: it opens the profile link Vikram saved, or LinkedIn's own people search for "name + firm" in <i>his</i> browser. Saved links must look like <code>linkedin.com/in/…</code> (anything else is rejected with a clear message) and live in Vikram's own column, which the engine login cannot write (now 28 permission checks).</li>
+  <li><b>"Your pitch".</b> Vikram saves his one-liner, real traction and ask once (founder login only). Every draft uses those facts; if traction is blank, the draft keeps "[your one-line traction here]". The AI still never invents facts.</li>
+  <li><b>Ready to send, but never sent.</b> Each draft returns an email (with "Copy" and "Open in Gmail", pre-filled; Vikram presses send) and a LinkedIn connection note under 300 characters (LinkedIn's limit) that cites the same signal.</li>
+</ul>
+<p class="q">Viva: "Why not pull LinkedIn profiles automatically?"</p><p class="a">Scraping LinkedIn breaks its terms and gets accounts banned; its official API doesn't allow this use. Opening LinkedIn's own search in the user's browser gives the same convenience with no data collected and no risk.</p>
 
 <h2 class="pb">7 · Tools we used, and why</h2>
 <table>

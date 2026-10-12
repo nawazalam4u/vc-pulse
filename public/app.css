@@ -270,3 +270,7 @@ code { font-family: ui-monospace, Menlo, monospace; font-size: 12px; background:
 .pitch input { font: inherit; font-size: 13px; padding: 8px 10px; border: 1px solid var(--line); border-radius: 9px; min-width: 0; }
 .liin { font: inherit; font-size: 12px; width: 190px; padding: 3px 6px; border: 1px solid #c8d8f3; border-radius: 8px; }
 @media (max-width: 900px) { .pitch { grid-template-columns: 1fr; } }
+@media (max-width: 680px) {
+  .top .right { flex: none; }
+  .pill.edit { font-size: 0; padding: 6px 9px; } .pill.edit::before { content: "✎"; font-size: 14px; }
+}

@@ -115,7 +115,7 @@
 <h2 id="eval">7b · How accurate is the AI? (measured, not claimed)</h2>
 <p>57 real items from the live pipeline were labelled by hand (is this really about that investor or their firm? is it about logistics?), then run through Gemini + our code checks (<code>tests/eval_judge.py</code>, labels in <code>data/eval_gold.json</code>).</p>
 <table class="mini"><tr><th>Question</th><th>Precision</th><th>Recall</th><th>Accuracy</th></tr>
-<tr><td>Is it really them / their firm?</td><td><b>100%</b> (no false claims)</td><td>89%</td><td>95%</td></tr>
+<tr><td>Is it really them / their firm?</td><td><b>100%</b> (no false claims)</td><td>85-89% (varies by run)</td><td>93-95%</td></tr>
 <tr><td>Is it about logistics? (on correct items)</td><td>100%</td><td>100%</td><td></td></tr></table>
 <p>Measured on the fallback model (Gemini 3.5 Flash-Lite, before the gateway switch), i.e. the worst case. The design deliberately trades a little recall for precision: a missed signal costs Vikram little; a wrong one could embarrass him in front of an investor. The misses are headlines that don't name the investor, which our "evidence must name them" rule rejects on purpose.</p>
 
