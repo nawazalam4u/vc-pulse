@@ -96,3 +96,12 @@ alter table signals add column if not exists angle text;
 
 -- Gemini's fit flags per run (geography, stage, competitor) so the drawer can show the exact score maths
 alter table vc_changes add column if not exists flags jsonb;
+
+-- Vikram's own LinkedIn link per investor (he pastes it; the engine can never write it)
+alter table vcs add column if not exists linkedin_url text;
+
+-- Vikram's pitch facts, used by email drafts so they never have to invent anything
+create table if not exists founder_profile (
+  key   text primary key,
+  value text not null
+);

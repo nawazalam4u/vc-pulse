@@ -18,7 +18,8 @@ import _engine
 import _http
 import _sources
 
-FOUNDER_FIELDS = ["name", "firm", "thesis", "region", "status", "last_contact_date", "contact_history", "notes", "feed_url"]
+FOUNDER_FIELDS = ["name", "firm", "thesis", "region", "status", "last_contact_date", "contact_history", "notes", "feed_url",
+                  "linkedin_url"]
 
 
 def norm_status(v):
@@ -51,6 +52,9 @@ def clean(row):
                 v = norm_date(v)
             elif f == "feed_url" and v and not re.match(r"^https?://", v, re.I):
                 v = None
+            elif f == "linkedin_url" and v:
+                # only a real linkedin.com profile link is stored (pasted by Vikram; we never fetch it)
+                v = v if re.match(r"^https://([a-z]{2,3}\.)?(www\.)?linkedin\.com/in/[A-Za-z0-9_%\-]+/?$", v) else None
             out[f] = v
     return out
 

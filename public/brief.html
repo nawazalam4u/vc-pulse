@@ -126,6 +126,7 @@
   <li><b>Run tickets:</b> only the caller who started a run can continue it (HMAC token), so nobody can burn the AI quota through someone else's run.</li>
   <li><b>Never "quiet" by accident:</b> if a news source or the AI fails for an investor, they keep last run's verdict and the run log records it. The run is marked "partial", never silently "done".</li>
   <li><b>Time budget:</b> the cron run stops starting new work after 200 s (Vercel's limit is 300 s), so it always finishes cleanly.</li>
+  <li><b>LinkedIn, safely:</b> we never fetch or scrape LinkedIn. Each investor has an "in" button that opens Vikram's saved profile link, or LinkedIn's own people search in his browser. Saved links are validated (linkedin.com/in/… only) and live in Vikram's column, which the engine cannot write.</li>
   <li><b>Only real web links</b> (http/https) are stored or shown; a strict Content-Security-Policy blocks injected scripts; the editor key travels only in a header, never in a URL.</li>
   <li><b>Cost guards:</b> a 10-minute cool-down on public refreshes, a 30-drafts-per-hour cap for visitors, and the AI health probe is editor-only.</li>
 </ul>

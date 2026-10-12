@@ -36,6 +36,10 @@ const ANGLE = {
   overlap: { e: "⚠️", t: "Overlap", d: "Backed a direct competitor: usually negative" },
 };
 const angleChip = (s) => { const a = ANGLE[s.angle]; return a ? `<span class="chip ang-${esc(s.angle)}" title="${esc(a.d)}">${a.e} ${a.t} · ${fmtDate(s.published)}</span>` : `<span class="chip ${esc(s.kind)}">${KIND[s.kind] || "•"} · ${fmtDate(s.published)}</span>`; };
+const firmShort = (f) => String(f || "").replace(/\s*\(.*\)/, "").replace(/\b(Venture Partners|Partners|Ventures|Capital)\b/g, "").trim();
+// LinkedIn: we never fetch or scrape LinkedIn. The button opens Vikram's saved profile link, or LinkedIn's own search in his browser.
+const liUrl = (v) => v.linkedin_url || "https://www.linkedin.com/search/results/people/?keywords=" + encodeURIComponent(v.name + " " + firmShort(v.firm));
+const liBtn = (v, cls = "li") => `<a class="${cls}" href="${safeUrl(liUrl(v))}" target="_blank" rel="noopener" title="${v.linkedin_url ? "Open LinkedIn profile" : "Find on LinkedIn (opens LinkedIn search)"}" data-stop>in</a>`;
 const ORIGIN = { news: "News", firm_news: "Firm deals", blog: "Their blog", podcast: "Podcast", search: "Web search" };
 const LANES = [
   { id: "hot", title: "🔥 Reach out this week", sub: "Fresh, on-topic signal + good timing", match: (a) => a === "REACH OUT" || a === "NUDGE" },
@@ -92,6 +96,7 @@ async function load(flashIds = []) {
   $("#addBtn").hidden = !S.can_edit;
   $("#editHint").textContent = S.can_edit ? "Editor mode: click your blue cells to edit. Changes save to the database instantly through the founder login."
     : "Public demo, read-only. Vikram's notes are illustrative and visible so reviewers can verify they never change; in production they sit behind his login. He edits them through his private link.";
+  if (S.can_edit) loadPitch();
   renderHeader(); renderMix(); renderBoard(); renderFeed(); renderTable(flashIds); renderRuns(); renderGuardRuns();
 }
 
@@ -127,7 +132,7 @@ function renderBoard() {
     const show = openLanes.has(L.id) ? items : items.slice(0, 8);
     return `<div class="lane"><h3>${L.title}<small>${items.length}</small></h3><div class="sub">${L.sub}</div>
       ${show.map((v) => `<div class="card ${L.id}" data-id="${v.id}" tabindex="0" role="button" aria-label="${esc(v.name)}, ${esc(v.firm)}, score ${v.follow_up_score ?? "not scored"}">
-        <div class="hd">${ring(v.follow_up_score)}<div style="min-width:0"><div class="nm">${esc(v.name)} ${deltaBadge(v)}</div><div class="fm">${esc(v.firm)}</div></div></div>
+        <div class="hd">${ring(v.follow_up_score)}<div style="min-width:0;flex:1"><div class="nm">${esc(v.name)} ${deltaBadge(v)}</div><div class="fm">${esc(v.firm)}</div></div>${liBtn(v)}</div>
         <div class="act">${esc(actText(v.recommended_action))}</div>
         ${(L.id === "hot" || L.id === "warm") && (v.signal_summary || "").includes("Why it matters for Haulr: ") ? `<div class="whyline">💡 ${esc(v.signal_summary.split("Why it matters for Haulr: ")[1])}</div>` : ""}
         ${v.signals?.length ? `<div class="ev">${v.signals.slice(0, 3).map(sigChip).join("")}</div>` : ""}
@@ -156,7 +161,7 @@ function renderFeed() {
 }
 
 // ---------- table
-const MINE = [["status", "Status"], ["last_contact_date", "Last contact"], ["contact_history", "Contact history"], ["notes", "Your notes"]];
+const MINE = [["status", "Status"], ["last_contact_date", "Last contact"], ["contact_history", "Contact history"], ["notes", "Your notes"], ["linkedin_url", "LinkedIn"]];
 function renderTable(flashIds = []) {
   const q = $("#q").value.trim().toLowerCase();
   let rows = [...S.vcs].sort((a, b) => (b.follow_up_score ?? -1) - (a.follow_up_score ?? -1));
@@ -166,7 +171,7 @@ function renderTable(flashIds = []) {
   else if (filter === "PARK") rows = rows.filter((v) => ["PARK", "LOW"].includes(actTag(v.recommended_action)));
   else if (filter !== "all") rows = rows.filter((v) => actTag(v.recommended_action) === filter);
   const ed = S.can_edit;
-  $("#tbl").innerHTML = `<thead><tr class="grp"><th class="mine" colspan="6">🔒 Vikram's columns: the engine cannot write here</th><th class="sig" colspan="4">⚡ Signal columns: updated by VC Pulse every run</th></tr>
+  $("#tbl").innerHTML = `<thead><tr class="grp"><th class="mine" colspan="7">🔒 Vikram's columns: the engine cannot write here</th><th class="sig" colspan="4">⚡ Signal columns: updated by VC Pulse every run</th></tr>
     <tr class="cols"><th class="mine">Investor</th><th class="mine">Thesis</th>${MINE.map(([, l]) => `<th class="mine">${l}</th>`).join("")}
     <th class="sig">Last signal</th><th class="sig">Signal summary</th><th class="sig">Score</th><th class="sig">Recommended action</th></tr></thead>
     <tbody>${rows.map((v) => `<tr data-id="${v.id}" class="${flashIds.includes(v.id) ? "flash" : ""}">
@@ -177,6 +182,7 @@ function renderTable(flashIds = []) {
       <td class="mine" style="white-space:nowrap">${ed ? `<input type="date" data-f="last_contact_date" value="${esc((v.last_contact_date || "").slice(0, 10))}">` : (fmtDate(v.last_contact_date) || "–")}</td>
       <td class="mine"><div class="clip" ${ed ? `contenteditable="true" data-f="contact_history"` : ""}>${esc(v.contact_history)}</div></td>
       <td class="mine"><div class="clip" ${ed ? `contenteditable="true" data-f="notes"` : ""}>${esc(v.notes)}</div></td>
+      <td class="mine" style="white-space:nowrap">${ed ? `<input type="url" class="liin" data-f="linkedin_url" placeholder="paste linkedin.com/in/…" value="${esc(v.linkedin_url || "")}">` : ""} ${liBtn(v)}</td>
       <td class="sig" style="white-space:nowrap">${fmtDate(v.last_signal_date) || "–"}</td>
       <td class="sig"><div class="clip">${esc(v.signal_summary)}</div></td>
       <td class="sig"><span class="score">${v.follow_up_score ?? "–"}</span> ${deltaBadge(v)}</td>
@@ -185,12 +191,16 @@ function renderTable(flashIds = []) {
 }
 async function saveCell(el) {
   const tr = el.closest("tr"), id = +tr.dataset.id, f = el.dataset.f;
-  const value = el.tagName === "DIV" ? el.innerText.trim() : el.value;
+  const value = el.tagName === "DIV" ? el.innerText.trim() : el.value.trim();
   const v = S.vcs.find((x) => x.id === id);
   if ((v[f] ?? "") === value) return;
   try {
+    if (f === "linkedin_url" && value && !/^https:\/\/([a-z]{2,3}\.)?(www\.)?linkedin\.com\/in\/[A-Za-z0-9_%-]+\/?$/.test(value)) {
+      toast("Paste a LinkedIn profile link like https://www.linkedin.com/in/name"); return;
+    }
     await api("/api/vc", { method: "PATCH", body: JSON.stringify({ id, fields: { [f]: value } }) });
     v[f] = value;
+    if (f === "linkedin_url") renderBoard();
     toast("Saved ✓ (founder login, your column only)");
   } catch (e) { toast("Not saved: " + e.message); }
 }
@@ -201,7 +211,7 @@ $("#q").addEventListener("input", () => renderTable());
 $$(".fchip").forEach((b) => b.addEventListener("click", () => { $$(".fchip").forEach((x) => x.classList.remove("on")); b.classList.add("on"); filter = b.dataset.f; renderTable(); }));
 
 // CSV export / import (Vikram's spreadsheet in and out)
-const CSV_COLS = ["name", "firm", "thesis", "region", "status", "last_contact_date", "contact_history", "notes", "feed_url", "last_signal_date", "signal_summary", "follow_up_score", "recommended_action"];
+const CSV_COLS = ["name", "firm", "thesis", "region", "status", "last_contact_date", "contact_history", "notes", "feed_url", "linkedin_url", "last_signal_date", "signal_summary", "follow_up_score", "recommended_action"];
 $("#csvOut").addEventListener("click", () => {
   const q = (x) => { let t = String(x ?? ""); if (/^[=+\-@]/.test(t)) t = "'" + t; return `"${t.replace(/"/g, '""')}"`; };  // no Excel formulas
   const csv = [CSV_COLS.join(","), ...S.vcs.map((v) => CSV_COLS.map((c) => q(v[c])).join(","))].join("\n");
@@ -244,6 +254,21 @@ $("#addForm").addEventListener("submit", async (e) => {
   } catch (err) { toast("Not added: " + err.message); }
 });
 
+async function loadPitch() {
+  try {
+    const d = await api("/api/pitch");
+    const p = d.profile || {};
+    $("#pitch").hidden = !d.can_edit;
+    ["one_liner", "traction", "ask"].forEach((k) => { const el = $(`#pitch [name=${k}]`); if (el) el.value = p[k] || ""; });
+  } catch (e) { /* optional panel */ }
+}
+$("#pitch").addEventListener("submit", async (e) => {
+  e.preventDefault();
+  const fields = Object.fromEntries(new FormData(e.target).entries());
+  try { await api("/api/pitch", { method: "POST", body: JSON.stringify({ fields }) }); toast("Saved. Every email draft now uses your own facts."); }
+  catch (err) { toast("Not saved: " + err.message); }
+});
+
 // ---------- drawer: one investor
 let openSeq = 0;
 async function openVc(id) {
@@ -263,7 +288,8 @@ async function openVc(id) {
     const w = 540, h = 46, pts = hist.map((x, i) => [10 + (i * (w - 20)) / (hist.length - 1), h - 6 - ((x.new_score ?? 0) / 100) * (h - 12)]);
     return `<svg class="spark" viewBox="0 0 ${w} ${h}"><polyline fill="none" stroke="#6d4aff" stroke-width="2.5" points="${pts.map((p) => p.join(",")).join(" ")}"/>${pts.map((p) => `<circle cx="${p[0]}" cy="${p[1]}" r="3.5" fill="#6d4aff"/>`).join("")}</svg>`;
   })() : `<p class="meta" style="color:var(--ink2);margin:0">History builds up with every run (twice a week).</p>`;
-  dr.innerHTML = `<div class="dh">${ring(v.follow_up_score)}<div><h2>${esc(v.name)}</h2><div class="fm" style="color:var(--ink2)">${esc(v.firm)} · ${esc(v.region || "")}</div></div><button class="x" data-close aria-label="Close">×</button></div>
+  dr.innerHTML = `<div class="dh">${ring(v.follow_up_score)}<div style="flex:1;min-width:0"><h2>${esc(v.name)}</h2><div class="fm" style="color:var(--ink2)">${esc(v.firm)} · ${esc(v.region || "")}</div>
+      <div class="dlinks">${liBtn(v, "li big")}<span>${v.linkedin_url ? "Profile saved by Vikram" : "Opens LinkedIn search (we never scrape LinkedIn)"}</span></div></div><button class="x" data-close aria-label="Close">×</button></div>
   <div class="db">
     <div class="box"><h4><span class="tag ${esc(actTag(v.recommended_action).split(" ")[0])}">${esc(actTag(v.recommended_action))}</span> Recommended action</h4>
       <div style="font-size:15px">${esc(actText(v.recommended_action))}</div>
@@ -298,8 +324,14 @@ async function openVc(id) {
     db.disabled = true; db.textContent = "Gemini is writing…";
     try {
       const r = await api("/api/draft", { method: "POST", body: JSON.stringify({ id }) });
-      $("#draftOut").innerHTML = `<div class="draft" style="margin-top:10px">${esc(r.draft)}</div><div style="display:flex;gap:8px;margin-top:8px;align-items:center"><button class="btn ghost sm" id="cpy">Copy</button><span class="meta" style="color:var(--ink2)">Draft only: nothing is sent. You edit and send it yourself. (${esc(r.model)})</span></div>`;
-      $("#cpy").onclick = () => { navigator.clipboard.writeText(r.draft); toast("Copied"); };
+      const gmail = "https://mail.google.com/mail/?view=cm&fs=1&su=" + encodeURIComponent(r.subject || "") + "&body=" + encodeURIComponent(r.body || r.draft);
+      $("#draftOut").innerHTML = `<div class="draft" style="margin-top:10px">${esc(r.draft)}</div>
+        <div class="dbtns"><button class="btn ghost sm" id="cpy">Copy email</button><a class="btn ghost sm" href="${gmail}" target="_blank" rel="noopener">Open in Gmail ↗</a></div>
+        ${r.linkedin_note ? `<div class="linote"><b>LinkedIn connection note</b> <small>${r.linkedin_note.length}/300</small><div>${esc(r.linkedin_note)}</div></div>
+        <div class="dbtns"><button class="btn ghost sm" id="cpyli">Copy LinkedIn note</button>${liBtn(v, "btn ghost sm")}</div>` : ""}
+        <div class="meta" style="color:var(--ink2);margin-top:6px">Draft only: nothing is sent. You edit and send it yourself. (${esc(r.model)})</div>`;
+      $("#cpy").onclick = () => { navigator.clipboard.writeText(r.draft); toast("Email copied"); };
+      if ($("#cpyli")) $("#cpyli").onclick = () => { navigator.clipboard.writeText(r.linkedin_note); toast("LinkedIn note copied"); };
     } catch (e) { $("#draftOut").innerHTML = `<p style="color:var(--bad)">${esc(e.message)}</p>`; }
     db.disabled = false; db.textContent = "✉️ Draft again";
   });
@@ -311,6 +343,7 @@ document.addEventListener("keydown", (e) => { if (e.key === "Escape") closeVc();
 $("#board").addEventListener("click", (e) => {
   const m = e.target.closest(".more[data-lane]");
   if (m) { openLanes.has(m.dataset.lane) ? openLanes.delete(m.dataset.lane) : openLanes.add(m.dataset.lane); renderBoard(); return; }
+  if (e.target.closest("[data-stop]")) return;  // LinkedIn button: just follow the link
   const c = e.target.closest(".card"); if (c) openVc(+c.dataset.id);
 });
 $("#board").addEventListener("keydown", (e) => { const c = e.target.closest(".card"); if (c && (e.key === "Enter" || e.key === " ")) { e.preventDefault(); openVc(+c.dataset.id); } });
@@ -342,7 +375,7 @@ function renderGuardRuns() {
 async function loadGuard() {
   try {
     const d = await api("/api/proof");
-    const all = ["name", "firm", "thesis", "region", "status", "last_contact_date", "contact_history", "notes", "feed_url", "last_signal_date", "signal_summary", "follow_up_score", "recommended_action"];
+    const all = ["name", "firm", "thesis", "region", "status", "last_contact_date", "contact_history", "notes", "feed_url", "linkedin_url", "last_signal_date", "signal_summary", "follow_up_score", "recommended_action"];
     const draw = (can) => all.map((c) => `<span class="col ${can.includes(c) ? "yes" : "no"}">${c}</span>`).join("");
     $("#gEng").innerHTML = draw(d.engine_can_update); $("#gFou").innerHTML = draw(d.founder_can_update);
   } catch (e) { $("#gEng").textContent = e.message; }

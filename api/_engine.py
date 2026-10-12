@@ -40,7 +40,7 @@ ACTOR_M = {"person": 1.0, "firm": 0.85}  # deals are announced in the firm's nam
 KIND_VERB = {"invested": "invested", "wrote": "wrote", "said": "spoke", "appeared": "appeared at an event",
              "mentioned": "was in the news"}
 
-VIKRAM_COLS = "id, name, firm, thesis, region, status, last_contact_date, contact_history, notes, feed_url"
+VIKRAM_COLS = "id, name, firm, thesis, region, status, last_contact_date, contact_history, notes, feed_url, linkedin_url"
 FINGERPRINT = ("select md5(coalesce(string_agg(concat_ws('|', %s), '~' order by id), '')) as h, count(*) as n from vcs"
                % ", ".join("coalesce(%s::text, '∅')" % c.strip() for c in VIKRAM_COLS.split(",")))
 

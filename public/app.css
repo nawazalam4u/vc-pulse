@@ -251,3 +251,22 @@ code { font-family: ui-monospace, Menlo, monospace; font-size: 12px; background:
 .mixleg { display: flex; gap: 14px; flex-wrap: wrap; font-size: 12px; color: var(--ink2); margin-top: 6px; }
 @media (max-width: 900px) { .jgrid { grid-template-columns: 1fr 1fr; } }
 @media (max-width: 520px) { .jgrid { grid-template-columns: 1fr; } }
+
+/* LinkedIn + personalisation */
+.li { flex: none; display: inline-grid; place-items: center; width: 26px; height: 26px; border-radius: 7px; background: #0a66c2; color: #fff !important;
+  font: 700 13px/1 -apple-system, Helvetica, Arial, sans-serif; text-decoration: none !important; transition: transform .12s; }
+.li:hover { transform: scale(1.08); }
+.li.big { width: auto; height: auto; padding: 5px 10px; font-size: 12.5px; }
+.li.big::before { content: ""; }
+.dlinks { display: flex; gap: 8px; align-items: center; margin-top: 6px; font-size: 12px; color: var(--ink2); }
+.dbtns { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 8px; }
+.dbtns .li { width: auto; height: auto; padding: 6px 10px; border-radius: 9px; font-size: 12.5px; }
+.linote { margin-top: 10px; background: #eef5ff; border: 1px dashed #9bbcf0; border-radius: 12px; padding: 10px 12px; font-size: 13.5px; }
+.linote small { color: var(--ink2); margin-left: 6px; } .linote div { margin-top: 4px; }
+.pitch { display: grid; grid-template-columns: 1.2fr 1fr .8fr auto; gap: 8px; align-items: center; margin: 0 0 12px; padding: 12px; background: #fff;
+  border: 1px solid var(--line); border-radius: 14px; }
+.pitch .ptitle { grid-column: 1 / -1; display: flex; gap: 10px; align-items: baseline; flex-wrap: wrap; }
+.pitch .ptitle span { color: var(--ink2); font-size: 12.5px; }
+.pitch input { font: inherit; font-size: 13px; padding: 8px 10px; border: 1px solid var(--line); border-radius: 9px; min-width: 0; }
+.liin { font: inherit; font-size: 12px; width: 190px; padding: 3px 6px; border: 1px solid #c8d8f3; border-radius: 8px; }
+@media (max-width: 900px) { .pitch { grid-template-columns: 1fr; } }

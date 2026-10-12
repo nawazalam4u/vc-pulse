@@ -110,6 +110,13 @@
       <input name="last_contact_date" type="date" title="Last contact"><input name="notes" placeholder="Your notes" maxlength="500">
       <button class="btn primary sm" type="submit">Add</button>
     </form>
+    <form id="pitch" class="pitch" hidden>
+      <div class="ptitle"><b>✍️ Your pitch</b><span>Used in every email draft, so Gemini never has to invent anything about Haulr.</span></div>
+      <input name="one_liner" maxlength="220" placeholder="One-liner, e.g. Haulr: freight visibility and dispatch software for Indian mid-market shippers">
+      <input name="traction" maxlength="220" placeholder="Your real traction, e.g. 14 paying shippers, ₹38L ARR, 22% MoM (leave blank for a placeholder)">
+      <input name="ask" maxlength="160" placeholder="Your ask, e.g. a 20-minute call next week">
+      <button class="btn primary sm" type="submit">Save pitch</button>
+    </form>
     <div class="tablebox"><table id="tbl"></table></div>
     <p class="meta" style="color:var(--ink2)" id="editHint"></p>
   </section>

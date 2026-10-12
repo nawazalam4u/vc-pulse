@@ -11,7 +11,8 @@ for line in open(os.path.join(ROOT, ".env")):
         os.environ.setdefault(k, v)
 import _db  # noqa: E402
 
-VIKRAM = ["name", "firm", "thesis", "region", "status", "last_contact_date", "contact_history", "notes", "feed_url"]
+VIKRAM = ["name", "firm", "thesis", "region", "status", "last_contact_date", "contact_history", "notes", "feed_url",
+          "linkedin_url"]
 SIGNAL = ["last_signal_date", "signal_summary", "follow_up_score", "recommended_action"]
 VAL = {"status": "'waiting_response'", "last_contact_date": "current_date", "follow_up_score": "1", "last_signal_date": "current_date"}
 vid = _db.q("select min(id) as id from vcs")[0]["id"]
