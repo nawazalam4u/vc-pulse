@@ -19,9 +19,9 @@ def sig(kind, rel, days, actor="person", angle=None):
     return {"points": e.signal_points(angle, rel, actor, days), "angle": angle}
 
 
-def act(vc, signals, hook="Saw your post"):
+def act(vc, signals, hook="Saw your post", rel=3):
     total, bd, strength, days = e.score(vc, signals, T)
-    return total, e.action_for(vc, total, strength, days, hook, None, T, None)
+    return total, e.action_for(vc, total, strength, days, hook, {"relevance": rel} if signals else None, T, None)
 
 
 checks = []
@@ -106,6 +106,14 @@ check("Gemini's caveats change the score: US-only -15, later-stage -8", s1 - s2 
 IN = dict(LOGI, region="Bengaluru, India")
 check("an India-based investor is never penalised for geography",
       e.score(IN, [], T, "", {"geo_fit": "mismatch"})[0] == e.score(IN, [], T)[0])
+
+IN3 = dict(LOGI, region="Bengaluru, India")
+strong_off = [sig("invested", 1, 1, "firm", angle="deploying")] * 3
+tot, bd, st, dd = e.score(IN3, strong_off, T, "", {"geo_fit": "match", "stage_fit": "match"})
+cold = e.action_for(IN3, max(tot, 60), st, dd, "Saw X", {"relevance": 1}, T, None)
+warm_f = e.action_for(dict(IN3, status="waiting_response", last_contact_date="2026-09-10"), max(tot, 60), st, 31, "Saw X", {"relevance": 1}, T, None)
+check("cold REACH OUT needs an on-topic reason; an off-topic deal stays WARM", cold.startswith("WARM"))
+check("a follow-up (NUDGE) only needs a timely reason", warm_f.startswith("NUDGE"))
 
 for n, ok in checks:
     print("PASS" if ok else "FAIL", "-", n)

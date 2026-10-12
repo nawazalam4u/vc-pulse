@@ -46,7 +46,8 @@ for x in groups:
 
 prec = tp / max(1, tp + fp)
 rec = tp / max(1, tp + fn)
-res = {"items": len(gold), "model": _gemini.LAST["model"], "attribution": {
+res = {"items": len(gold), "model": _gemini.LAST["model"], "reasoning": _gemini.REASONING,
+       "cost_usd": round(_gemini.COST["usd"], 5), "tokens": _gemini.COST["tokens"], "attribution": {
     "precision": round(prec, 3), "recall": round(rec, 3), "accuracy": round((tp + tn) / len(gold), 3),
     "tp": tp, "fp": fp, "fn": fn, "tn": tn},
     "logistics_label": {"precision": round(ltp / max(1, ltp + lfp), 3), "recall": round(ltp / max(1, ltp + lfn), 3)},

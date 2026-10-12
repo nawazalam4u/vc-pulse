@@ -1,6 +1,9 @@
 {
  "items": 57,
- "model": "gemini-3.5-flash-lite",
+ "model": "google/gemini-3.5-flash-lite",
+ "reasoning": "low",
+ "cost_usd": 0.01899,
+ "tokens": 14238,
  "attribution": {
   "precision": 1.0,
   "recall": 0.889,

@@ -13,9 +13,13 @@ import urllib.request
 
 URL = "https://openrouter.ai/api/v1/chat/completions"
 MODELS = [m.strip() for m in os.environ.get(
-    "GEMINI_MODEL", "google/gemini-3.7-flash,google/gemini-3.8-flash,google/gemini-3.5-flash-lite").split(",") if m.strip()]
+    "GEMINI_MODEL", "google/gemini-3.5-flash-lite,google/gemini-3.7-flash,google/gemini-3.8-flash").split(",") if m.strip()]
+# Cheapest model that does the job (tests/eval_judge.py, 57 labelled items, minimal thinking):
+#   3.5 Flash-Lite: precision 100%, recall 89%, $0.015 | 3.7 Flash: precision 100%, recall 85%, $0.031
 DRAFT_MODELS = ["google/gemini-3.5-flash-lite", "google/gemini-3.7-flash"]  # cheapest model that writes a good email
 PROVIDER = {"only": ["google-vertex", "google-ai-studio"], "allow_fallbacks": False}
+# "thinking" is billed and cannot be fully switched off: minimal by default (see tests/eval_judge.py results)
+REASONING = os.environ.get("GEMINI_REASONING", "minimal")
 LAST = {"model": None}
 EXHAUSTED = set()   # kept for compatibility (OpenRouter has no per-model daily cap on this key)
 USED = {}           # model -> successful calls (stored in the run log)
@@ -61,7 +65,8 @@ def generate(prompt, schema=None, system=None, temperature=0.2, timeout=90, tool
     last = None
     for model in models or MODELS:
         body = {"model": model, "messages": messages, "temperature": temperature, "provider": PROVIDER,
-                "reasoning": {"effort": "low"}, "usage": {"include": True}}
+                "reasoning": {"enabled": False} if REASONING == "off" else {"effort": REASONING},
+                "usage": {"include": True}}
         if schema:
             body["response_format"] = {"type": "json_schema",
                                        "json_schema": {"name": "result", "strict": True, "schema": _schema(schema)}}

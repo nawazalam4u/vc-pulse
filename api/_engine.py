@@ -394,6 +394,9 @@ def action_for(vc, total, strength, days, hook, best, today, last_any, mention=N
         return "PARK · %s%s Recheck %s." % (quiet, rel, recheck)
     lead = hook or (best and best.get("summary")) or "reference their recent activity"
     if total >= 55:
+        # a FIRST email needs an on-topic reason; a follow-up only needs a timely one
+        if status != "waiting_response" and (best is None or int(best.get("relevance") or 0) < 2):
+            return "WARM · Active and a good fit, but nothing on logistics yet, so not a cold-email moment. %s" % lead
         verb = "NUDGE" if status == "waiting_response" else "REACH OUT"
         return "%s · This week. %s" % (verb, lead)
     if total >= 35:
@@ -516,7 +519,8 @@ def process(run_id, vc_ids, workers=8, judge_size=10):
         # the hook must come from evidence our code kept; otherwise the code writes a plain factual one
         hook = ((v or {}).get("hook", "") if hook_ok else fallback_hook(vc, counted)).strip().rstrip(".… ")
         hook = hook + "." if hook else ""
-        action = action_for(vc, total, strength, days, hook, kept[0] if kept else None, today, last_any, mention)
+        best = max((k for k in kept if not k["dup"]), key=lambda k: k["points"], default=None)
+        action = action_for(vc, total, strength, days, hook, best, today, last_any, mention)
         if conflict:
             action += " ⚠ They just backed %s, which overlaps with Haulr: lead with how you're different, or skip." % conflict
         if kept:
