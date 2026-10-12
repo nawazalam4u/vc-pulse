@@ -63,8 +63,10 @@ JUDGE_SCHEMA = {
             "hook": {"type": "STRING"},
             "hook_item": {"type": "INTEGER"},
             "why": {"type": "STRING"},
-            "conflict": {"type": "STRING"}},
-        "required": ["vc", "items", "overall", "hook", "hook_item", "why", "conflict"]}}
+            "conflict": {"type": "STRING"},
+            "geo_fit": {"type": "STRING", "enum": ["match", "mismatch", "unclear"]},
+            "stage_fit": {"type": "STRING", "enum": ["match", "mismatch", "unclear"]}},
+        "required": ["vc", "items", "overall", "hook", "hook_item", "why", "conflict", "geo_fit", "stage_fit"]}}
 
 JUDGE_SYSTEM = """You are the research analyst for a founder raising a Seed round. His company: %s.
 For each investor you get a numbered list of public items (headline, source, date) found in the last 30 days.
@@ -81,9 +83,10 @@ kind:   invested (new investment / led a round) | wrote (post, article, op-ed, n
         quote) | appeared (spoke at / attended an event, panel, demo day) | mentioned (in the news, no clear act) | other
 angle:  what the item MEANS for Haulr's chance of getting a meeting. Think like an experienced founder: a past or new
         investment in the same category is NOT by itself a reason this investor will invest again.
-        "thesis"     = the investor THEMSELVES says or writes they want startups in Haulr's space or problem
-                       (logistics / supply-chain software, operations SaaS, India B2B): a post, talk, interview or
-                       request-for-startups. Only for wrote/said/appeared, never for a deal.
+        "thesis"     = the investor THEMSELVES expresses appetite to back startups in Haulr's space: logistics, freight,
+                       supply-chain or transport software (a post "why we're excited about freight tech", a talk on
+                       logistics opportunities, a request-for-startups). General SaaS, AI, sales or fundraising advice is
+                       NOT thesis, it is "visible". Only for wrote/said/appeared, never for a deal.
         "deploying"  = evidence they are actively writing NEW cheques at seed/early stage right now: a new fund, bigger
                        seed cheques, a new accelerator cohort, a fresh seed/pre-seed deal in B2B software.
         "complement" = they backed or work with a company in Haulr's ecosystem that is NOT a competitor (shippers,
@@ -118,6 +121,10 @@ why:    <= 38 words: WHY this matters to Haulr right now, reasoning from the str
         appetite for supply-chain SaaS at seed, and Procuros is a complement, not a rival. Caveat: Europe-focused."
         Use ONLY the items, thesis and region given: never cite other portfolio companies, track records or facts from
         memory. Return "" if nothing qualifies.
+geo_fit: "match" if the investor is India-based or the items/thesis show they invest in Indian startups; "mismatch"
+        if the thesis or items show a mandate limited to another market (e.g. US-only "American Dynamism"); else "unclear".
+stage_fit: "match" if they invest at seed/early stage; "mismatch" if the items/thesis show growth or late stage only;
+        else "unclear".
 conflict: if a qualifying item shows this investor/firm just backed a DIRECT competitor of Haulr (freight visibility,
         carrier management or dispatch software for shippers), the competitor's name exactly as written in the item;
         otherwise "". Adjacent logistics companies (defence logistics, robotics, warehousing hardware) are NOT conflicts.""" % COMPANY
@@ -170,7 +177,8 @@ def judge(batch):
                                    "hook": (row.get("hook") or "").strip(),
                                    "hook_item": row.get("hook_item", -1),
                                    "why": (row.get("why") or "").strip(),
-                                   "conflict": (row.get("conflict") or "").strip()}
+                                   "conflict": (row.get("conflict") or "").strip(),
+                                   "geo_fit": row.get("geo_fit", "unclear"), "stage_fit": row.get("stage_fit", "unclear")}
         except (KeyError, TypeError, ValueError):
             continue
     return res
@@ -243,11 +251,14 @@ def names_them(vc, item, kind):
     return named
 
 
-def check_angle(angle, kind):
-    """Code checks the AI's reading: a thesis is something they SAID, not a deal; an overlap must be an investment."""
+def check_angle(angle, kind, rel=3):
+    """Code checks the AI's reading: a thesis is something they SAID about Haulr's space (not a deal, not off-topic);
+    an overlap must be an investment."""
     angle = angle if angle in ANGLE_W else "none"
     if angle == "thesis" and kind == "invested":
         return "complement"
+    if angle == "thesis" and rel <= 1:
+        return "visible"
     if angle == "overlap" and kind != "invested":
         return "complement"
     return angle
@@ -256,7 +267,7 @@ def check_angle(angle, kind):
 def signal_points(angle, rel, actor, days):
     """Weight by what the signal MEANS (angle) x topic fit x who acted x freshness."""
     # deploying = open allocation; it counts fully only when the new cheques are in or near Haulr's space
-    topic = REL_M[rel] if angle in ("thesis", "complement") else ({3: 1.0, 2: 0.8}.get(rel, 0.4) if angle == "deploying" else 1.0)
+    topic = {3: 1.0, 2: 0.5}.get(rel, 0.0) if angle == "thesis" else REL_M[rel] if angle == "complement" else ({3: 1.0, 2: 0.8}.get(rel, 0.4) if angle == "deploying" else 1.0)
     return ANGLE_W.get(angle, 0) * topic * ACTOR_M.get(actor, 0.85) * recency(days)
 
 
@@ -285,7 +296,17 @@ def next_run_day(today):
     return today + dt.timedelta(days=3)
 
 
-def score(vc, signals, today, conflict=""):
+def fit_penalties(vc, flags):
+    """Gemini's honest caveats change the score too: a mandate outside India or growth-only cheques are real blockers."""
+    out = []
+    if (flags or {}).get("geo_fit") == "mismatch" and "india" not in (vc.get("region") or "").lower():
+        out.append(["Gemini: mandate outside Haulr's market (India)", -10])
+    if (flags or {}).get("stage_fit") == "mismatch":
+        out.append(["Gemini: invests later than seed", -8])
+    return out
+
+
+def score(vc, signals, today, conflict="", flags=None):
     """Returns (score 0-100, action text, breakdown list). Pure function: same inputs, same answer."""
     breakdown = []
     pts = sorted((s["points"] for s in signals), reverse=True)
@@ -327,8 +348,11 @@ def score(vc, signals, today, conflict=""):
         breakdown.append(["Not contacted yet + timely hook for a first email", timing])
 
     penalty = 0
+    for line in fit_penalties(vc, flags):
+        breakdown.append(line)
+        penalty += line[1]
     if conflict:
-        penalty = -15
+        penalty += -15
         breakdown.append(["Just backed %s, a likely Haulr competitor" % conflict[:40], penalty])
     total = int(round(max(0, min(100, strength + fit + timing + penalty))))
     return total, breakdown, strength, days
@@ -440,7 +464,7 @@ def process(run_id, vc_ids, workers=8, judge_size=10):
             if not names_them(vc, it, kind):
                 continue
             j = dict(j, actor=blog_actor(vc, it, j["actor"]))
-            angle = check_angle(j.get("angle"), kind)
+            angle = check_angle(j.get("angle"), kind, rel)
             attributed.append(dict(it, angle=angle, kind=kind))
             days = (today - _d(it["published"])).days
             p = signal_points(angle, rel, j["actor"], days)
@@ -466,7 +490,8 @@ def process(run_id, vc_ids, workers=8, judge_size=10):
         overlaps = [a for a in attributed if a["angle"] == "overlap"]
         if conflict and not any(conflict.lower() in (a["title"] + " " + a.get("snippet", "")).lower() for a in overlaps):
             conflict = ""  # code check: the competitor must be named in an investment item we attributed to them
-        total, breakdown, strength, days = score(vc, [k for k in kept if not k["dup"]], today, conflict)
+        flags = {"geo_fit": (v or {}).get("geo_fit", "unclear"), "stage_fit": (v or {}).get("stage_fit", "unclear")}
+        total, breakdown, strength, days = score(vc, [k for k in kept if not k["dup"]], today, conflict, flags)
         mention = None
         if strength <= 0 and judged:
             try:
@@ -519,9 +544,10 @@ def process(run_id, vc_ids, workers=8, judge_size=10):
                            k["summary"] if k else None, k["points"] if k else 0, run_id,
                            k["event"] if k else None, bool(k and k["dup"]),
                            k["angle"] if k else next((a["angle"] for a in attributed if a["url"] == s["url"]), None)]))
-        stmts.append(("insert into vc_changes (run_id, vc_id, old_score, new_score, old_action, new_action) "
-                      "values ($1,$2,$3,$4,$5,$6) on conflict do nothing",
-                      [run_id, vc["id"], vc.get("follow_up_score"), total, vc.get("recommended_action"), action]))
+        stmts.append(("insert into vc_changes (run_id, vc_id, old_score, new_score, old_action, new_action, flags) "
+                      "values ($1,$2,$3,$4,$5,$6,$7::jsonb) on conflict do nothing",
+                      [run_id, vc["id"], vc.get("follow_up_score"), total, vc.get("recommended_action"), action,
+                       json.dumps(dict(flags, conflict=conflict))]))
         # THE ONLY WRITE TO VIKRAM'S TABLE: four signal columns, nothing else (and the login can't do more anyway).
         stmts.append(("update vcs set last_signal_date = $2::date, signal_summary = $3, follow_up_score = $4, "
                       "recommended_action = $5 where id = $1",

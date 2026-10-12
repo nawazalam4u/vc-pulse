@@ -93,3 +93,6 @@ create unique index if not exists one_running_run on runs ((status)) where statu
 
 -- what a signal means for Haulr: thesis | deploying | complement | overlap | visible | none
 alter table signals add column if not exists angle text;
+
+-- Gemini's fit flags per run (geography, stage, competitor) so the drawer can show the exact score maths
+alter table vc_changes add column if not exists flags jsonb;

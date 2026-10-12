@@ -9,6 +9,7 @@ import sys
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))  # lets Vercel find the _helper modules
 
 import datetime as dt
+import json
 import re
 from http.server import BaseHTTPRequestHandler
 
@@ -71,8 +72,12 @@ class handler(BaseHTTPRequestHandler):
         live = [s for s in sig if s["about_vc"] and not s.get("dup") and float(s["points"] or 0) >= 4 and s["published"] >= _sources.cutoff().isoformat()]
         for s in live:
             s["points"] = float(s["points"])
-        m = re.search(r"They just backed (.+?), which overlaps", vc.get("recommended_action") or "")
-        total, breakdown, strength, days = _engine.score(vc, live, today, m.group(1) if m else "")
+        flags = {}
+        if hist:
+            f = _db.q("select flags from vc_changes where vc_id = $1 order by run_id desc limit 1", [vid])
+            flags = f[0]["flags"] if f and f[0]["flags"] else {}
+            flags = json.loads(flags) if isinstance(flags, str) else flags
+        total, breakdown, strength, days = _engine.score(vc, live, today, flags.get("conflict", ""), flags)
         _http.send(self, {"vc": vc, "signals": sig, "breakdown": breakdown, "score_now": total, "history": hist,
                           "weights": {"kind": _engine.KIND_W, "relevance": _engine.REL_M, "actor": _engine.ACTOR_M}})
 

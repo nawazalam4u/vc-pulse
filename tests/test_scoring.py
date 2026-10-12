@@ -93,6 +93,16 @@ conf = e.score(LOGI, [sig("invested", 3, 2)], T, "FreightCo")
 check("backing a direct competitor lowers the score by 15 and says why",
       conf[0] == base - 15 and any("competitor" in b[0] for b in conf[1]))
 
+check("general SaaS writing is not a 'thesis' for logistics (off-topic thesis -> visible)", e.check_angle("thesis", "wrote", 1) == "visible")
+check("an on-topic but adjacent thesis counts at half weight", e.signal_points("thesis", 2, "person", 1) == 21)
+US = dict(LOGI, region="San Francisco, USA")
+s1 = e.score(US, [sig("said", 3, 2, angle="thesis")], T)[0]
+s2 = e.score(US, [sig("said", 3, 2, angle="thesis")], T, "", {"geo_fit": "mismatch", "stage_fit": "mismatch"})[0]
+check("Gemini's caveats change the score: US-only -10, later-stage -8", s1 - s2 == 18)
+IN = dict(LOGI, region="Bengaluru, India")
+check("an India-based investor is never penalised for geography",
+      e.score(IN, [], T, "", {"geo_fit": "mismatch"})[0] == e.score(IN, [], T)[0])
+
 for n, ok in checks:
     print("PASS" if ok else "FAIL", "-", n)
 print("%d/%d passed" % (sum(ok for _, ok in checks), len(checks)))
