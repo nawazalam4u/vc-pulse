@@ -35,7 +35,7 @@ class handler(BaseHTTPRequestHandler):
         waiting = vc["status"] == "waiting_response"
         lead = (vc.get("recommended_action") or "").split(" · ", 1)[-1]
         lead = re.sub(r"^(This week\.|If you have bandwidth this week\.|Active and a good fit, but no logistics hook yet, so not a cold-email moment\.)\s*", "", lead)
-        why = (vc.get("signal_summary") or "").split("Why it matters for Haulr: ")[-1] if "Why it matters" in (vc.get("signal_summary") or "") else ""
+        why = re.split(r"Why it matters for (?:Vikram|Haulr): ", vc.get("signal_summary") or "")[-1] if "Why it matters" in (vc.get("signal_summary") or "") else ""
         ev = "\n".join("- %s (%s, %s): %s" % (s["title"], s["source"], s["published"], s["summary"] or "") for s in sig)
         pf = _profile.load()
         company = pf.get("one_liner") or _engine.COMPANY
@@ -45,10 +45,11 @@ class handler(BaseHTTPRequestHandler):
                   "Open with this exact signal (the strongest one): %s\nWhy it matters (our analysis; use it, don't overclaim): %s\n"
                   "Other public activity (background only, use ONLY these facts):\n%s\n"
                   "Vikram's own context (private, may inform tone; never quote it): status=%s; history=%s; notes=%s\n"
+                  "The company has no public name yet: never invent one; describe it (e.g. 'my logistics software startup'). "
                   "Rules: under 110 words, plain and specific, no flattery clichés, no claims about the investor's portfolio or "
                   "strategy beyond the facts above. Never argue 'you invested in X, so you'll like "
-                  "us'; connect their specific signal to Haulr honestly (a complement, their stated thesis, or their active "
-                  "early-stage investing). NEVER invent facts about Haulr: no traction, "
+                  "us'; connect their specific signal to Vikram's startup honestly (a complement, their stated thesis, or their active "
+                  "early-stage investing). NEVER invent facts about Vikram's startup: no traction, "
                   "customers, growth, revenue or stage claims; instead write the placeholder [your one-line traction here] "
                   "for Vikram to fill in. Don't repeat his private notes word for word. One clear ask. "
                   "Also write linkedin_note: a LinkedIn connection note under 280 characters that cites the same signal, "

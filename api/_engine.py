@@ -19,12 +19,12 @@ import _db
 import _gemini
 import _sources
 
-COMPANY = ("Haulr, a seed-stage B2B logistics SaaS from India (freight visibility, carrier management and "
+COMPANY = ("Vikram's startup, a seed-stage B2B logistics SaaS from India (freight visibility, carrier management and "
            "dispatch software for mid-market shippers)")
 
-# What a signal MEANS for Haulr decides its weight, not merely what kind of act it was. A past or new deal in the
+# What a signal MEANS for Vikram's startup decides its weight, not merely what kind of act it was. A past or new deal in the
 # same category is not by itself a reason to invest again: a direct competitor is a conflict (negative), an adjacent
-# company is a medium "complement" signal. The strongest signals show the investor is LOOKING for more deals like Haulr.
+# company is a medium "complement" signal. The strongest signals show the investor is LOOKING for more deals like Vikram's startup.
 ANGLE_W = {"thesis": 42,      # they say/write they want this space: an open invitation
            "deploying": 34,   # actively writing new seed/early cheques now (new fund, bigger cheques, new cohort)
            "complement": 26,  # backed an adjacent, non-competing company: conviction + partnership/intro angle
@@ -81,20 +81,20 @@ actor:  "person" if the investor named is the one who acted (wrote it, was inter
         a deal by another investor, generic market news).
 kind:   invested (new investment / led a round) | wrote (post, article, op-ed, newsletter) | said (interview, podcast,
         quote) | appeared (spoke at / attended an event, panel, demo day) | mentioned (in the news, no clear act) | other
-angle:  what the item MEANS for Haulr's chance of getting a meeting. Think like an experienced founder: a past or new
+angle:  what the item MEANS for the startup's chance of getting a meeting. Think like an experienced founder: a past or new
         investment in the same category is NOT by itself a reason this investor will invest again.
-        "thesis"     = the investor THEMSELVES expresses appetite to back startups in Haulr's space: logistics, freight,
+        "thesis"     = the investor THEMSELVES expresses appetite to back startups in the startup's space: logistics, freight,
                        supply-chain or transport software (a post "why we're excited about freight tech", a talk on
                        logistics opportunities, a request-for-startups). General SaaS, AI, sales or fundraising advice is
                        NOT thesis, it is "visible". Only for wrote/said/appeared, never for a deal.
         "deploying"  = evidence they are actively writing NEW cheques at seed/early stage right now: a new fund, bigger
                        seed cheques, a new accelerator cohort, a fresh seed/pre-seed deal in B2B software.
-        "complement" = they backed or work with a company in Haulr's ecosystem that is NOT a competitor (shippers,
+        "complement" = they backed or work with a company in the startup's ecosystem that is NOT a competitor (shippers,
                        marketplaces, defence or military logistics, warehouse robotics, supply-chain AI for other
                        segments): sector conviction plus a partnership or warm-intro angle, nothing more.
-        "overlap"    = they backed a company doing the SAME job as Haulr (freight visibility, carrier management or
+        "overlap"    = they backed a company doing the SAME job as Vikram's startup (freight visibility, carrier management or
                        dispatch software for shippers). Usually NEGATIVE: VCs rarely fund a portfolio company's rival.
-        "visible"    = publicly active (interview, podcast, event, post) on topics unrelated to Haulr: reachable now.
+        "visible"    = publicly active (interview, podcast, event, post) on topics unrelated to Vikram's startup: reachable now.
         "none"       = not useful (share sales, personal news, unrelated).
 relevance to the founder's space, 0-3 (be strict, judge only what the text says):
         3 = the item itself explicitly mentions logistics, freight, trucking, shipping, warehousing, supply chain,
@@ -114,8 +114,9 @@ hook:   <= 22 words, written to THIS investor about THEIR OWN act (an item with 
         honest opening line for the founder's email, e.g. "Saw Peak XV raise Surge checks to $5M on 29 Sep."
         Never mention other people. Return "" if nothing qualifies.
 hook_item: the [number] of the item the hook is based on (-1 if hook is "").
-why:    <= 38 words: WHY this matters to Haulr right now, reasoning from the strongest angle, honestly. Say what it
-        does and does NOT prove, and name any mismatch in stage or geography (Haulr is an Indian seed-stage company;
+why:    (The company has no public name: always call it "Vikram's startup"; never invent a name.)
+        <= 38 words: WHY this matters to Vikram's startup right now, reasoning from the strongest angle, honestly. Say what it
+        does and does NOT prove, and name any mismatch in stage or geography (Vikram's startup is an Indian seed-stage company;
         the investor's region and thesis are given). Never argue "they invested in logistics before, so they will
         again". Good: "Point Nine just backed Procuros, an AI supply-chain platform for European suppliers: proof of
         appetite for supply-chain SaaS at seed, and Procuros is a complement, not a rival. Caveat: Europe-focused."
@@ -125,7 +126,7 @@ geo_fit: "match" if the investor is India-based or the items/thesis show they in
         if the thesis or items show a mandate limited to another market (e.g. US-only "American Dynamism"); else "unclear".
 stage_fit: "match" if they invest at seed/early stage; "mismatch" if the items/thesis show growth or late stage only;
         else "unclear".
-conflict: if a qualifying item shows this investor/firm just backed a DIRECT competitor of Haulr (freight visibility,
+conflict: if a qualifying item shows this investor/firm just backed a DIRECT competitor of Vikram's startup (freight visibility,
         carrier management or dispatch software for shippers), the competitor's name exactly as written in the item;
         otherwise "". Adjacent logistics companies (defence logistics, robotics, warehousing hardware) are NOT conflicts.""" % COMPANY
 
@@ -262,7 +263,7 @@ ADJACENT_WORDS = re.compile(LOGISTICS_WORDS.pattern + r"|industrial|physical|man
 
 
 SALE_WORDS = re.compile(r"\bsells?\b|\bsold\b|stake sale|offload|\bexits?\b|trims stake|cuts stake|block deal", re.I)
-COMMON = set("""A An The This That These Those It Its Their They He She His Her We Our Haulr Haulr's India Indian US USA
+COMMON = set("""A An The This That These Those It Its Their They He She His Her We Our Vikram Vikram's Startup Vikram's startup the startup's India Indian US USA
 Europe European Caveat Mismatch However But While Although Direct Proof Strong Good Clear Active Actively Recent Recently
 Seed Series Pre-seed AI B2B SaaS VC VCs CEO Partner Partners Fund Funds Ventures Capital Firm Oct Sep Sept Nov Aug
 Jan Feb Mar Apr May Jun Jul Dec Logistics Supply Chain No Not Only Also Both Its Since Surge""".split())
@@ -281,7 +282,7 @@ def ground_why(why, evidence, vc):
 
 
 def check_angle(angle, kind, rel=3, text=None):
-    """Code checks the AI's reading: a thesis is something they SAID about Haulr's space (not a deal, not off-topic);
+    """Code checks the AI's reading: a thesis is something they SAID about the startup's space (not a deal, not off-topic);
     an overlap must be an investment."""
     angle = angle if angle in ANGLE_W else "none"
     if angle == "thesis" and kind == "invested":
@@ -291,7 +292,7 @@ def check_angle(angle, kind, rel=3, text=None):
     if angle in ("deploying", "complement", "overlap") and text is not None and SALE_WORDS.search(text):
         return "none"  # selling shares or exiting is not putting money in
     if angle == "thesis" and text is not None and not ADJACENT_WORDS.search(text):
-        return "visible"  # a thesis must be ABOUT Haulr's world, in the source's own words
+        return "visible"  # a thesis must be ABOUT the startup's world, in the source's own words
     if angle == "overlap" and kind != "invested":
         return "complement"
     return angle
@@ -299,7 +300,7 @@ def check_angle(angle, kind, rel=3, text=None):
 
 def signal_points(angle, rel, actor, days):
     """Weight by what the signal MEANS (angle) x topic fit x who acted x freshness."""
-    # deploying = open allocation; it counts fully only when the new cheques are in or near Haulr's space
+    # deploying = open allocation; it counts fully only when the new cheques are in or near the startup's space
     topic = {3: 1.0, 2: 0.5}.get(rel, 0.0) if angle == "thesis" else REL_M[rel] if angle == "complement" else ({3: 1.0, 2: 0.8, 1: 0.6}.get(rel, 0.3) if angle == "deploying" else 1.0)
     return ANGLE_W.get(angle, 0) * topic * ACTOR_M.get(actor, 0.85) * recency(days)
 
@@ -309,7 +310,7 @@ def recency(days):
 
 
 def geo_fit(region):
-    return (10, "India-based: invests in Haulr's home market") if "india" in (region or "").lower() else (0, "")
+    return (10, "India-based: invests in Vikram's home market") if "india" in (region or "").lower() else (0, "")
 
 
 def thesis_fit(thesis):
@@ -336,11 +337,11 @@ def fit_penalties(vc, flags):
         return out
     indian = "india" in (vc.get("region") or "").lower()
     if not indian and flags.get("geo_fit") == "mismatch":
-        out.append(["Gemini: mandate outside Haulr's market (India)", -15])
+        out.append(["Gemini: mandate outside Vikram's market (India)", -15])
     elif not indian and flags.get("geo_fit") == "unclear":
         out.append(["Not India-based; no sign they back Indian startups", -5])
     if flags.get("stage_fit") == "match":
-        out.append(["Gemini: invests at seed/early stage, like Haulr", 5])
+        out.append(["Gemini: invests at seed/early stage, like Vikram's startup", 5])
     elif flags.get("stage_fit") == "mismatch":
         out.append(["Gemini: invests later than seed", -8])
     return out
@@ -393,7 +394,7 @@ def score(vc, signals, today, conflict="", flags=None):
         penalty += line[1]
     if conflict:
         penalty += -15
-        breakdown.append(["Just backed %s, a likely Haulr competitor" % conflict[:40], penalty])
+        breakdown.append(["Just backed %s, a likely competitor of Vikram's startup" % conflict[:40], penalty])
     total = int(round(max(0, min(100, strength + fit + timing + penalty))))
     return total, breakdown, strength, days
 
@@ -571,13 +572,13 @@ def process(run_id, vc_ids, workers=8, judge_size=10):
         best = max((k for k in kept if not k["dup"]), key=lambda k: k["points"], default=None)
         action = action_for(vc, total, strength, days, hook, best, today, last_any, mention)
         if conflict:
-            action += " ⚠ They just backed %s, which overlaps with Haulr: lead with how you're different, or skip." % conflict
+            action += " ⚠ They just backed %s, which overlaps with Vikram's startup: lead with how you're different, or skip." % conflict
         if kept:
             summary = (v or {}).get("overall") or "; ".join(
                 "%s: %s" % (short_date(s["published"]), s["summary"]) for s in kept[:2])
             why = ground_why((v or {}).get("why", ""), " ".join(i["title"] + " " + i.get("snippet", "") for i in items), vc)
             if why and strength > 0:
-                summary = summary.rstrip(". ") + ". Why it matters for Haulr: " + why
+                summary = summary.rstrip(". ") + ". Why it matters for Vikram: " + why
         else:
             checked = ["news", "firm deals"] + (["their blog"] if vc.get("feed_url") else []) + ["podcasts"] + (
                 ["web search"] if _sources.SEARCH_STATE["available"] else [])

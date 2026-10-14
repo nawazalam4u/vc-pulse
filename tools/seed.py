@@ -1,6 +1,6 @@
 """Loads Vikram's starting spreadsheet (50 real investors) through the FOUNDER login.
 Never overwrites a row that already exists (on conflict do nothing), so re-running is safe.
-The investors, firms and theses are real (verified Oct 2026). Vikram, Haulr and his contact notes are illustrative.
+The investors, firms and theses are real (verified Oct 2026). Vikram, Vikram's startup and his contact notes are illustrative.
 Usage: python3 -I tools/seed.py"""
 import datetime as dt
 import json

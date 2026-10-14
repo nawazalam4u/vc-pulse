@@ -9,7 +9,7 @@ Vercel Cron (Mon/Thu 07:00 IST) or "Refresh now"
   -> Vikram's table (Neon Postgres, 50 investors)
   -> 5 live sources per investor (Google News x2, their blog RSS, Apple Podcasts, Gemini search when available)
   -> keep items with a link + source date <= 30 days
-  -> Gemini Flash (JSON schema): is it really them? what does it MEAN for Haulr (thesis / deploying / complement / visible / overlap)? why it matters, geography/stage fit, hook
+  -> Gemini Flash (JSON schema): is it really them? what does it MEAN for Vikram's startup (thesis / deploying / complement / visible / overlap)? why it matters, geography/stage fit, hook
   -> code: follow-up score 0-100 + action (REACH OUT, NUDGE, WARM, WAIT, LOW, PARK)
   -> UPDATE vcs SET last_signal_date, signal_summary, follow_up_score, recommended_action   (login: pulse_engine)
   -> dashboard + evidence + Gemini email draft (Vikram sends it himself)
@@ -60,4 +60,4 @@ python3 -I tests/test_scoring.py && python3 -I tests/test_guard.py
 
 **Vercel environment variables:** `OPENROUTER_API_KEY` (the institute's key; Google models only), `ENGINE_DATABASE_URL`, `FOUNDER_DATABASE_URL`, `DASHBOARD_KEY` (Vikram's editor key: open `/#key=...` once), `CRON_SECRET` (Vercel Cron sends it), optional `TELEGRAM_BOT_TOKEN` + `TELEGRAM_CHAT_ID`, optional `GEMINI_MODEL`.
 
-The investors, firms and theses are real (verified Oct 2026) and all signals are live. Vikram, his company "Haulr" and his contact notes are illustrative. Built for MESA Cohort C4, *AI and its Applications*: all AI is Gemini Flash.
+The investors, firms and theses are real (verified Oct 2026) and all signals are live. Vikram and his contact notes are illustrative (the brief doesn't name his company, so we call it "Vikram's startup"). Built for MESA Cohort C4, *AI and its Applications*: all AI is Gemini Flash.
