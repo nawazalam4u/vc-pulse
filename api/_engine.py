@@ -643,6 +643,7 @@ def finish_run(run_id):
                 "from signals where run_id = $1 group by origin", [run_id])
     errs = _db.q("select count(*) as n from jsonb_array_elements(coalesce((select log from runs where id = $1), '[]'::jsonb))",
                  [run_id])[0]["n"]
+    _db.q("update runs set vcs_done = (select count(distinct vc_id) from vc_changes where run_id = $1) where id = $1", [run_id])
     _db.q("update runs set status = case when vcs_done >= vcs_total then 'done' else 'partial' end, "
           "finished_at = now(), notes_hash_after = $2, "
           "hot_count = (select count(*) from vcs where recommended_action like 'REACH OUT%' or recommended_action like 'NUDGE%'), "
