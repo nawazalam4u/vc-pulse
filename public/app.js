@@ -14,7 +14,12 @@ try {
 async function api(path, opts = {}) {
   const headers = { "content-type": "application/json" };
   if (KEY) headers["x-pulse-key"] = KEY;
-  const r = await fetch(path, { ...opts, headers: { ...headers, ...(opts.headers || {}) } });
+  const ctl = new AbortController();
+  const timer = setTimeout(() => ctl.abort(), opts.timeout || 290000);  // never hang forever
+  let r;
+  try { r = await fetch(path, { ...opts, signal: ctl.signal, headers: { ...headers, ...(opts.headers || {}) } }); }
+  catch (e) { throw Object.assign(new Error(e.name === "AbortError" ? "The server took too long; try again." : "Network problem: check your connection."), { status: 0 }); }
+  finally { clearTimeout(timer); }
   let data = {};
   try { data = await r.json(); } catch (e) { data = { error: "Server returned " + r.status }; }
   if (!r.ok) throw Object.assign(new Error(data.error || "Request failed"), { status: r.status, data });
@@ -435,7 +440,8 @@ async function runNow() {
           break;
         } catch (e) {
           if (e.status === 409) { batches.length = 0; line(`<span style="color:var(--bad)">${esc(e.message)}</span>`); break; }
-          if (attempt) line(`<span style="color:var(--bad)">Batch failed: ${esc(e.message)}. These investors keep their last verdict.</span>`);
+          // retry once only for quick failures (network blip / busy server); a slow batch is still working server-side
+          if (attempt || e.message.includes("too long")) { line(`<span style="color:var(--bad)">Batch didn't finish: ${esc(e.message)} These investors keep their last verdict.</span>`); break; }
         }
       }
       done += b.length;

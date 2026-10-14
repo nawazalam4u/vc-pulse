@@ -8,11 +8,16 @@ from http.server import BaseHTTPRequestHandler
 
 import _http
 import _db
+import _engine
 
 
 class handler(BaseHTTPRequestHandler):
     def do_GET(self):
         try:
+            try:
+                _engine.heal_runs()  # close any run left hanging (e.g. a browser closed mid-refresh)
+            except Exception:
+                pass
             # one round trip to the database: all five reads in a single transaction
             vcs, sig, runs, changes, cnt = _db.tx([
                 ("select * from vcs order by follow_up_score desc nulls last, name", []),

@@ -449,11 +449,26 @@ def check_token(run_id, token):
     return hmac.compare_digest(run_token(run_id), str(token or ""))
 
 
+def heal_runs():
+    """A run left 'running' for 6+ minutes (browser closed mid-run, a lost connection) is closed automatically:
+    finished properly if every investor was processed, otherwise marked abandoned. Nothing ever stays stuck."""
+    stale = _db.q("select r.id, r.vcs_total, (select count(distinct vc_id) from vc_changes c where c.run_id = r.id) as done "
+                  "from runs r where r.status = 'running' and r.started_at < now() - interval '6 minutes'")
+    for r in stale:
+        if int(r["done"]) >= int(r["vcs_total"] or 0) > 0:
+            finish_run(r["id"])
+        else:
+            _db.q("update runs set status = 'abandoned', finished_at = now(), vcs_done = $2 where id = $1",
+                  [r["id"], int(r["done"])])
+    return len(stale)
+
+
 def start_run(trigger):
     # a run "running" for over 12 minutes died (browser closed / timeout): close it so it never blocks the next one.
     # The scheduled run always wins: it supersedes any manual run still in progress.
-    _db.q("update runs set status = 'abandoned', finished_at = now() "
-          "where status = 'running' and (started_at < now() - interval '12 minutes' or $1 = 'cron')", [trigger])
+    heal_runs()
+    if trigger == "cron":  # the scheduled run always wins over a manual run still in progress
+        _db.q("update runs set status = 'abandoned', finished_at = now() where status = 'running'")
     live = _db.q("select id from runs where status = 'running' order by id desc limit 1")
     if live:
         return live[0]["id"], False
@@ -608,8 +623,10 @@ def process(run_id, vc_ids, workers=8, judge_size=10):
                        "breakdown": breakdown})
 
     done = [r for r in report if not r.get("skipped")]
-    _db.q("update runs set vcs_done = vcs_done + $2, items_scanned = items_scanned + $3, signals_kept = signals_kept + $4, "
-          "errors = errors + $5 where id = $1",
+    # vcs_done counts DISTINCT investors processed, so a re-sent batch can never push it past the total
+    _db.q("update runs set vcs_done = (select count(distinct vc_id) from vc_changes where run_id = $1), "
+          "items_scanned = items_scanned + $3, signals_kept = signals_kept + $4, errors = errors + $5 "
+          "where id = $1 and $2::int >= 0",
           [run_id, len(report), sum(r.get("scanned", 0) for r in done), sum(r.get("kept", 0) for r in done),
            errors + len(report) - len(done)])
     return report
