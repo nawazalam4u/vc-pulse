@@ -455,6 +455,7 @@ def heal_runs():
     stale = _db.q("select r.id, r.vcs_total, (select count(distinct vc_id) from vc_changes c where c.run_id = r.id) as done "
                   "from runs r where r.status = 'running' and r.started_at < now() - interval '6 minutes'")
     for r in stale:
+        _db.q("update runs set sources = coalesce(sources, '{}'::jsonb) || '{\"healed\": true}'::jsonb where id = $1", [r["id"]])
         if int(r["done"]) >= int(r["vcs_total"] or 0) > 0:
             finish_run(r["id"])
         else:
