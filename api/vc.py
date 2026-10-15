@@ -82,6 +82,10 @@ class handler(BaseHTTPRequestHandler):
             flags = f[0]["flags"] if f and f[0]["flags"] else {}
             flags = json.loads(flags) if isinstance(flags, str) else flags
         total, breakdown, strength, days = _engine.score(vc, live, today, flags.get("conflict", ""), flags)
+        capped, cap = _engine.cap_for_action(total, vc.get("recommended_action"))
+        if cap is not None:
+            breakdown.append(["Capped to stay in its lane (no strong reason to contact this week)", capped - total])
+            total = capped
         _http.send(self, {"vc": vc, "signals": sig, "breakdown": breakdown, "score_now": total, "history": hist,
                           "weights": {"kind": _engine.KIND_W, "relevance": _engine.REL_M, "actor": _engine.ACTOR_M}})
 

@@ -450,6 +450,15 @@ def check_token(run_id, token):
     return hmac.compare_digest(run_token(run_id), str(token or ""))
 
 
+LANE_CAP = {"WARM": 54, "LOW": 34, "PARK": 34}
+
+
+def cap_for_action(total, action):
+    """Keep scores in lane order: Contact (55+) > Warm (35-54) > Low/Park (<35). WAIT is about timing, so it isn't capped."""
+    cap = LANE_CAP.get((action or "").split(" · ")[0])
+    return (min(total, cap), cap) if cap is not None and total > cap else (total, None)
+
+
 def heal_runs():
     """A run left 'running' for 6+ minutes (browser closed mid-run, a lost connection) is closed automatically:
     finished properly if every investor was processed, otherwise marked abandoned. Nothing ever stays stuck."""
@@ -571,6 +580,7 @@ def process(run_id, vc_ids, workers=8, judge_size=10):
         hook = hook + "." if hook else ""
         best = max((k for k in kept if not k["dup"]), key=lambda k: k["points"], default=None)
         action = action_for(vc, total, strength, days, hook, best, today, last_any, mention)
+        total, _cap = cap_for_action(total, action)
         if conflict:
             action += " ⚠ They just backed %s, which overlaps with Vikram's startup: lead with how you're different, or skip." % conflict
         if kept:
